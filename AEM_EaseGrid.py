@@ -25,7 +25,7 @@ import numpy as np
 # -- Proprietary modules -- #
 from Warren import SnowDepth, SWE
 import EASEgrid as EASEgrid
-from Get_Dates_From_Header import Get_date as gd
+from get_dates import Get_date as gd
 from Get_New_AEM_Data import Get_New_AEM_data as gnad
 
 # specify gridsize and temporal limits
