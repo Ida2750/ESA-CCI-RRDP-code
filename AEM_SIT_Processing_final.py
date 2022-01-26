@@ -47,7 +47,7 @@ index = np.argsort(numbers)
 directories = [directories[ind] for ind in index]
 
 for dir in directories:
-    dir = '2019'
+    # dir = '2019'
     dir_data = os.path.join(directory, dir)                
     if os.path.isdir(dir_data):          
         files = os.listdir(dir_data)
