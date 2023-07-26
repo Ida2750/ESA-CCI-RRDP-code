@@ -78,9 +78,9 @@ pp-flag = has values 0 to 3, with 0 meaning that no out of the ordinary processi
 unc-flag = has values 0 to 3, with 0 meaning that individual uncertainties were available for all raw data
 For more information about pre processing and uncertainty flags see the belonging publication **INSERT DOI**
 
--------------------------------------------------------------------------------------------------------------------------------------------------------
-# Reference data sources
--------------------------------------------------------------------------------------------------------------------------------------------------------
+
+## Reference data sources SID files
+
 ARCTIC sources:
 BGEP: Stationary moored upward-looking sonar - Beufort Gyre Exploration Project
 TRANSDRIFT: Stationary moored upward-looking sonar - Russian-German TRANSDRIFT project
@@ -104,8 +104,8 @@ FRB = freeboard (m). This is the sea ice freeboard for NP and AEM-AWI, whereas O
 The resulting variables follow the structure of the files with primary variable being SID.
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------
-# Reference data sources
--------------------------------------------------------------------------------------------------------------------------------------------------------
+## Reference data sources SIT, SD and FRB files
+
 ARCTIC sources:
 OIB: Airborne laser and radar altimetry and snow radar - NASA Operation IceBridge
 AEM-AWI: Airborne electromagnetic measurements - Alfred Wegener Institute
