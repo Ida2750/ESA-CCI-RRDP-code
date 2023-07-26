@@ -21,12 +21,12 @@ The structure of the project is illustrated on the diagrams below, with the blue
 
 
 # How to Use the Project:
-In the *../RRDPp/FINAL* folder you find the gridded reference data, which is available for use.\\
-The *../RRDPp/code* folder contains the scripts for the individual campaigns which processes the raw data to the final gridded data.\\
-In the ../RRDPp/RawData folder the user should locate raw data in folders following the naming convention of the *../RRDPp/code* folder.\\ 
-Individual links to raw data are available from the belonging publication in table 3 INSERT DOI\\
-The *../RRDPp/satellite* folder contains scripts that are related to co-locating data from CryoSat-2, ENVISAT, ERS-1 and ERS-2 to data in the *../RRDPp/FINAL* folder.\\
-For an overview of the structure of this folder see the diagram above.\\
+In the *../RRDPp/FINAL* folder you find the gridded reference data, which is available for use.\
+The *../RRDPp/code* folder contains the scripts for the individual campaigns which processes the raw data to the final gridded data.\
+In the ../RRDPp/RawData folder the user should locate raw data in folders following the naming convention of the *../RRDPp/code* folder.\ 
+Individual links to raw data are available from the belonging publication in table 3 INSERT DOI\
+The *../RRDPp/satellite* folder contains scripts that are related to co-locating data from CryoSat-2, ENVISAT, ERS-1 and ERS-2 to data in the *../RRDPp/FINAL* folder.\
+For an overview of the structure of this folder see the diagram above.\
 
 
 # Credits
