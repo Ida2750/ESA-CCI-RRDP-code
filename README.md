@@ -1,45 +1,32 @@
 # Project's Title:
-Dual hemisphere reference dataset for sea ice thickness, snow depth, draft and freeboard, 
-Climate Change Initiative sea ice thickness Round Robin Data Package (CCI+ SIT RRDP)
+Dual hemisphere reference dataset for sea ice thickness, snow depth, draft and freeboard, Climate Change Initiative sea ice thickness Round Robin Data Package (CCI+ SIT RRDP)
 
 
 # Project Description:
-The Climate Change Initiative sea ice thickness Round Robin Data Package (CCI+ SIT RRDP) is a set of space delimitted ASCII files which contain a 
-range of relevant reference sea ice variables, including sea ice thickness, snow depth, draft and freeboard, along with snow depth and density from 
-Warren climatology (1999) for Arctic. Sea ice surface temperature and air temperature is also provided when available.
-The data has been gridded into a 25 by 25 km product for Arctic and 50 by 50 km for Antarctic using EASE-grid 2.0 and contains monthly averages 
-of the given gridpoint.
-Reference data from autonomous buoys, moorings, submarines, ships (ice breakers), airborne campaigns (radar/laser altimetry and 
-electromagnetic induction system) and in-situ measurements is provided in the final dataset. 
-Along with the final dataset is provided code to process data from raw files into the final files. 
+The Climate Change Initiative sea ice thickness Round Robin Data Package (CCI+ SIT RRDP) is a set of space delimitted ASCII files which contain a range of relevant reference sea ice variables, including sea ice thickness, snow depth, draft and freeboard, along with snow depth and density from Warren climatology (1999) for Arctic. Sea ice surface temperature and air temperature is also provided when available.The data has been gridded into a 25 by 25 km product for Arctic and 50 by 50 km for Antarctic using EASE-grid 2.0 and contains monthly averages of the given gridpoint. Reference data from autonomous buoys, moorings, submarines, ships (ice breakers), airborne campaigns (radar/laser altimetry and electromagnetic induction system) and in-situ measurements is provided in the final dataset. Along with the final dataset is provided code to process data from raw files into the final files. 
 
-For further information please read the paper: " Dual-hemisphere sea ice thickness reference
-measurements from multiple data sources for evaluation
-and product inter-comparison of satellite altimetry" with DOI: **INSERT DOI**
+For further information please read the paper: " Dual-hemisphere sea ice thickness referencemeasurements from multiple data sources for evaluationand product inter-comparison of satellite altimetry" with DOI: **INSERT DOI**
 
 # How to Install and Run the Project:
-The project was made using python version 3.9.13, along with the packages:
-numpy, EaseGrid-2.0 (link), matplotlib, cartopy, PyPDF2, pandas and datetime.
-The version of EaseGrid-2.0 used in this project is found in the code folder under the name: EASEgrid_correct
+The project was made using python version 3.9.13, along with the packages: numpy, matplotlib, cartopy, PyPDF2, netcdf4, pandas and datetime.
+Furhtermore NASA's EaseGrid-2.0 was used and modified to make the gridded final data. This script is found in the code folder under the name: EASEgrid_correct
 
-To use the project extract the data from the zip RRDPp zip folder. 
-Download relevant reference data and Satellite data (see table 3 in **INSERT DOI**)
-See the How to Use the Project section for more information.
+To use the project extract the data from the zip RRDPp zip folder. Download relevant reference data and Satellite data (see table 3 in **INSERT DOI**). See the How to Use the Project section for more information.
 
 # The structure of the project:
-
+The structure of the project is illustrated on the diagrams below, with the blue boxes showning folders and pink boxes showing scripts. Black arrows indicate folder/subfolder connections, whereas the green lines show data/code dependencies. The content of the satellite folder is shown individually.
 ![image](https://github.com/Idalundtorp/ESACCI-/assets/70795109/f52f888f-4e12-42a5-947f-6852c2dbf021)
 
 ![image](https://github.com/Idalundtorp/ESACCI-/assets/70795109/b0277fd5-89d6-4725-821b-92b5cd421c4d)
 
 
 # How to Use the Project:
-In the ../RRDPp/FINAL folder you find the gridded reference data, which is available for use.
-The ../RRDPp/code folder contains the scripts for the individual campaigns which processes the raw data to the final gridded data.
-In the ../RRDPp/RawData folder the user should locate raw data in folders following the naming convention of the ../RRDPp/code folder. 
-Individual links to raw data are available from the belonging publication in table 3 INSERT DOI
-The ../RRDPp/satellite folder contains scripts that are related to co-locating data from CryoSat-2, ENVISAT, ERS-1 and ERS-2 to data in the ../RRDPp/FINAL folder.
-For an overview of the structure of this folder see the manual.
+In the *../RRDPp/FINAL* folder you find the gridded reference data, which is available for use.\\
+The *../RRDPp/code* folder contains the scripts for the individual campaigns which processes the raw data to the final gridded data.\\
+In the ../RRDPp/RawData folder the user should locate raw data in folders following the naming convention of the *../RRDPp/code* folder.\\ 
+Individual links to raw data are available from the belonging publication in table 3 INSERT DOI\\
+The *../RRDPp/satellite* folder contains scripts that are related to co-locating data from CryoSat-2, ENVISAT, ERS-1 and ERS-2 to data in the *../RRDPp/FINAL* folder.\\
+For an overview of the structure of this folder see the diagram above.\\
 
 
 # Credits
