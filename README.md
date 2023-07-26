@@ -1,9 +1,8 @@
-#######################################################################################################################################################
 # Project's Title:
 Dual hemisphere reference dataset for sea ice thickness, snow depth, draft and freeboard, 
 Climate Change Initiative sea ice thickness Round Robin Data Package (CCI+ SIT RRDP)
 
-#######################################################################################################################################################
+
 # Project Description:
 The Climate Change Initiative sea ice thickness Round Robin Data Package (CCI+ SIT RRDP) is a set of space delimitted ASCII files which contain a 
 range of relevant reference sea ice variables, including sea ice thickness, snow depth, draft and freeboard, along with snow depth and density from 
@@ -18,7 +17,6 @@ For further information please read the paper: " Dual-hemisphere sea ice thickne
 measurements from multiple data sources for evaluation
 and product inter-comparison of satellite altimetry" with DOI: **INSERT DOI**
 
-#######################################################################################################################################################
 # How to Install and Run the Project:
 The project was made using python version 3.9.13, along with the packages:
 numpy, EaseGrid-2.0 (link), matplotlib, cartopy, PyPDF2, pandas and datetime.
@@ -27,11 +25,11 @@ The version of EaseGrid-2.0 used in this project is found in the code folder und
 To use the project extract the data from the zip RRDPp zip folder. 
 Download relevant reference data and Satellite data (see table 3 in **INSERT DOI**)
 See the How to Use the Project section for more information.
-#######################################################################################################################################################
+
 # The structure of the project:
 To see an overview of the structure of the folders and the code dependencies see the belonging manual
 
-#######################################################################################################################################################
+
 # How to Use the Project:
 In the ../RRDPp/FINAL folder you find the gridded reference data, which is available for use.
 The ../RRDPp/code folder contains the scripts for the individual campaigns which processes the raw data to the final gridded data.
@@ -40,12 +38,12 @@ Individual links to raw data are available from the belonging publication in tab
 The ../RRDPp/satellite folder contains scripts that are related to co-locating data from CryoSat-2, ENVISAT, ERS-1 and ERS-2 to data in the ../RRDPp/FINAL folder.
 For an overview of the structure of this folder see the manual.
 
-#######################################################################################################################################################
+
 # Credits
 This project was made Henriette Skourup and Ida Olsen. Data used in the project were gathered by several external organisations. 
 For data availability, credits and acknowledgements, please see the publication linked to this project and remember to acknowledge and 
 cite relevant data sources when using data from this project
-#######################################################################################################################################################
+
 # License
 This project is made available under the CC BY 4.0 license meaning that you are free to:
 Share, copy and redistribute the material. Adapt, remix , transform and build upon the material.
@@ -57,14 +55,11 @@ and the acknowledgement:
 This datapackage and code was made by Ida Olsen and Henriette Skourup from the Technical University of Denmark
 
 You are also required to provide a citation to the raw data sources, when using this data! 
-#######################################################################################################################################################
 
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+# Information about reference data final files.
+-------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#######################################################################################################################################################
--------------------------------------------------------------------------------------------------------------------------------------------------------
-Information about reference data final files.
--------------------------------------------------------------------------------------------------------------------------------------------------------
-#######################################################################################################################################################
 For files with the primary variable being SID.
 
 Header includes:
@@ -78,9 +73,10 @@ wSD = snow depth from Warren climatology in units of (m)
 w-rho = estimated density of snow from Warren climatology in units of kg/m^3
 pp-flag = has values 0 to 3, with 0 meaning that no out of the ordinary processing was required of the raw data
 unc-flag = has values 0 to 3, with 0 meaning that individual uncertainties were available for all raw data
-For more information about pre processing and uncertainty flags see the belonging publication INSERT DOI
+For more information about pre processing and uncertainty flags see the belonging publication **INSERT DOI**
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------
-Reference data sources
+# Reference data sources
 -------------------------------------------------------------------------------------------------------------------------------------------------------
 ARCTIC sources:
 BGEP: Stationary moored upward-looking sonar - Beufort Gyre Exploration Project
@@ -92,7 +88,7 @@ SCICEX: Submarine-mounted upward-looking sonar - Submarine Arctic Science Progra
 ANTARCTIC sources:
 AWI-ULS: Stationary moored upward-looking sonar - Alfred Wegener Institute
 
-#######################################################################################################################################################
+-------------------------------------------------------------------------------------------------------------------------------------------------------
 For files with the primary variable being sea ice thickness (SIT), snow depth (SD) or freeboard (FRB).
 
 Header includes:
@@ -103,9 +99,9 @@ SD = snow depth (m)
 FRB = freeboard (m). This is the sea ice freeboard for NP and AEM-AWI, whereas OIB measures the total freeboard.
 
 The resulting variables follow the structure of the files with primary variable being SID.
-#######################################################################################################################################################
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------
-Reference data sources
+# Reference data sources
 -------------------------------------------------------------------------------------------------------------------------------------------------------
 ARCTIC sources:
 OIB: Airborne laser and radar altimetry and snow radar - NASA Operation IceBridge
@@ -119,5 +115,3 @@ ANTARCTIC sources:
 OIB: Airborne laser and radar altimetry
 SB-AWI: Snow depth buoys - Alfred Wegener Institute
 ASPeCt: Visual observations from ice breakers - Antarctic Sea ice Processes and Climate
-
-#######################################################################################################################################################
