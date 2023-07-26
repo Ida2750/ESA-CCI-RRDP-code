@@ -24,9 +24,9 @@ The structure of the project is illustrated on the diagrams below, with the blue
 In the *../RRDPp/FINAL* folder you find the gridded reference data, which is available for use.\
 The *../RRDPp/code* folder contains the scripts for the individual campaigns which processes the raw data to the final gridded data.\
 In the ../RRDPp/RawData folder the user should locate raw data in folders following the naming convention of the *../RRDPp/code* folder.\ 
-Individual links to raw data are available from the belonging publication in table 3 INSERT DOI\
+Individual links to raw data are available from the belonging publication in table 3 **INSERT DOI** \
 The *../RRDPp/satellite* folder contains scripts that are related to co-locating data from CryoSat-2, ENVISAT, ERS-1 and ERS-2 to data in the *../RRDPp/FINAL* folder.\
-For an overview of the structure of this folder see the diagram above.\
+For an overview of the structure of this folder see the diagram above.
 
 
 # Credits
@@ -39,7 +39,7 @@ This project is made available under the CC BY 4.0 license meaning that you are 
 Share, copy and redistribute the material. Adapt, remix , transform and build upon the material.
 
 When using code, or data from this project please include the citation:
-## INSERT CITATION
+**INSERT CITATION**
 
 and the acknowledgement:
 This datapackage and code was made by Ida Olsen and Henriette Skourup from the Technical University of Denmark
