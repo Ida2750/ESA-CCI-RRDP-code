@@ -27,7 +27,10 @@ Download relevant reference data and Satellite data (see table 3 in **INSERT DOI
 See the How to Use the Project section for more information.
 
 # The structure of the project:
-To see an overview of the structure of the folders and the code dependencies see the belonging manual
+
+![image](https://github.com/Idalundtorp/ESACCI-/assets/70795109/f52f888f-4e12-42a5-947f-6852c2dbf021)
+
+![image](https://github.com/Idalundtorp/ESACCI-/assets/70795109/b0277fd5-89d6-4725-821b-92b5cd421c4d)
 
 
 # How to Use the Project:
