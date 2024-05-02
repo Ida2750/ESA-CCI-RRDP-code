@@ -10,7 +10,7 @@ We highly recomend potential users of the repository to read the paper.
 
 # How to Install and Run the Project:
 The project was made using python version 3.9.13, along with the packages: numpy, matplotlib, cartopy, PyPDF2, netcdf4, pandas and datetime.
-Furhtermore NASA's EaseGrid-2.0 was used and modified to make the gridded final data. This script is found in the code folder under the name: EASEgrid_correct
+Furthermore, NASA's EaseGrid-2.0 was used and modified to make the gridded final data. This script is found in the code folder under the name: EASEgrid_correct
 
 To use the project extract the data from the zip RRDPp zip folder. Download relevant reference data and Satellite data (see table 3 in **INSERT DOI**). See the How to Use the Project section for more information.
 
