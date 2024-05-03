@@ -38,14 +38,14 @@ def check_filesize(OBSID,SATELLITE, check_count, save_path):
             check_count += 1
             print(file_size)
         
-        return ofile
+        return ofile, check_count
     
 #---------------------------------
 ''' Define these parameters'''
-OBSID = "AEM-AWI" # Name of campaign
-SATELLITE = "ERS2" # Satelitte name (either ENV, CS2, ERS1 or ERS2)
+OBSID = "TRANSDRIFT" # Name of campaign
+SATELLITE = "CS2" # Satelitte name (either ENV, CS2, ERS1 or ERS2)
 # name of reference data file
-obsfile =  os.path.dirname(os.getcwd()) + "/FINAL/" + OBSID + "/final/ESACCIplus-SEAICE-RRDP2+-SIT-" + OBSID + ".dat" 
+obsfile =  os.path.dirname(os.getcwd()) + "/FINAL/" + OBSID + "/final/ESACCIplus-SEAICE-RRDP2+-SID-" + OBSID + ".dat" 
 HS   = 'NH' # Hemisphere of observations (either Northen Hemisphere (NH) or Southern Hemisphere (SH))
 # -------------------------------------------
 
@@ -78,15 +78,15 @@ if 'ERS' in SATELLITE:
     for t,i in zip(time, range(len(time))):
         if t.year in ObsYears:
             if t.month in ObsMonth:
-                ofile = check_filesize(OBSID,SATELLITE, check_count, save_path)
+                ofile, check_count = check_filesize(OBSID,SATELLITE, check_count, save_path)
                 # Extract satellite subset
                 collocation(OBSID, obsfile, ifile, ofile, count, i)
                 count += 1
 
 
-else:  # is satellite is ENV or CS2
+else:  # if satellite is ENV or CS2
     # Satellite data directory
-    sat_dir = os.path.dirname(os.getcwd()) + "/satelitte/ENV_CS2_data/"+SATELLITE.replace('-','')+"_data/" + HS + "/"
+    sat_dir = os.path.dirname(os.getcwd()) + "/satellite/ENV_CS2_data/"+SATELLITE.replace('-','')+"_data/" + HS + "/"
     
     ## Loop through all satelitte files, with relevant dates
     years = os.listdir(sat_dir)
@@ -106,7 +106,7 @@ else:  # is satellite is ENV or CS2
                         print(file)
                         day = file[-14:-12]
                         
-                        ofile = check_filesize(OBSID,SATELLITE, check_count, save_path)
+                        ofile, check_count = check_filesize(OBSID,SATELLITE, check_count, save_path)
                         
                         ifile = os.path.join(sat_dir + year + '/' + month, file)
                         # Extract satellite subset

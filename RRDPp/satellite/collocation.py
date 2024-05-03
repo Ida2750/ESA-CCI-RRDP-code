@@ -18,11 +18,11 @@ from collocation_p2 import collocation_part2
 
 #---------------------------------
 ''' Define these parameters'''
-OBSID      = 'AEM-AWI' # Name of campaign
-SATELLITE = 'ENV' # Satelitte name (either ENV, CS2, ERS1 or ERS2)
+OBSID      = 'TRANSDRIFT' # Name of campaign
+SATELLITE = 'CS2' # Satelitte name (either ENV, CS2, ERS1 or ERS2)
 HEMISPHERE = 'NH' # Hemisphere of observations (either Northen Hemisphere (NH) or Southern Hemisphere (SH))
-var        =  [ 'SIT', 'SD', 'FRB'] # list of variables relevant for campaign (either ['SID'] or [ 'SIT', 'SD', 'FRB'])
-name       = 'ESACCIplus-SEAICE-RRDP2+-SIT-' + OBSID # name of file in the FINAL data folder
+var        =  ['SID'] #[ 'SIT', 'SD', 'FRB'] # list of variables relevant for campaign (either ['SID'] or [ 'SIT', 'SD', 'FRB'])
+name       = 'ESACCIplus-SEAICE-RRDP2+-SID-' + OBSID # name of file in the FINAL data folder
 #---------------------------------
 
 ## Defines path to satellite files
