@@ -136,8 +136,12 @@ def interpolate_positions(self, MassDate):
     Massdates = [(dt.datetime.strptime(dat, '%Y-%m-%d %H:%M') -
                   dt.datetime(1970, 1, 1)).total_seconds() for dat in MassDate]
     try:
-        Posdates = [(dt.datetime.strptime(dat, '%Y-%m-%d %H:%M') -
-                     dt.datetime(1970, 1, 1)).total_seconds() for dat in self.data['Date']]
+        if len(self.data['Date'][0])>10:
+            Posdates = [(dt.datetime.strptime(dat, '%Y-%m-%d %H:%M') -
+                         dt.datetime(1970, 1, 1)).total_seconds() for dat in self.data['Date']]
+        else: # to time provided
+            Posdates = [(dt.datetime.strptime(dat, '%Y-%m-%d') -
+                         dt.datetime(1970, 1, 1)).total_seconds() for dat in self.data['Date']]        
     except:  # different format
         Posdates = [(dt.datetime.strptime(dat, '%m/%d/%y %H:%M') -
                      dt.datetime(1970, 1, 1)).total_seconds() for dat in self.data['Date']]
@@ -208,9 +212,9 @@ def Get_ppflag(self, SD, lnSD, lnSIT):
 
 
 # Information
-save_path = os.path.dirname(os.path.dirname(os.getcwd())) + '/IMB_CRREL/'
+save_path = os.path.dirname(os.path.dirname(os.getcwd())) + '/IMB/'
 save_path_data = os.path.dirname(os.path.dirname(
-    os.getcwd())) + '/FINAL/IMB_CRREL/final/'
+    os.getcwd())) + '/FINAL/IMB/final/'
 ofile = 'ESACCIplus-SEAICE-RRDP2+-SIT-IMB-V3.dat'
 gridres = 25000  # grid resolution
 dtint = 30  # days per mean
@@ -219,7 +223,7 @@ ofile = os.path.join(save_path_data, ofile)
 
 
 saveplot = os.path.join(os.path.dirname(
-    os.path.dirname(os.getcwd())), 'Final/IMB_CRREL/fig/')
+    os.path.dirname(os.getcwd())), 'Final/IMB/fig/')
 dataDir = os.path.dirname(os.path.dirname(os.getcwd())) + '/RawData/IMB_CRREL/'
 
 count = 0
@@ -229,7 +233,6 @@ for dirr in os.listdir(dataDir):
             path = os.path.join(dataDir, dirr)
             # Enter identifier (e.g. 2002A)
             for dirrr in os.listdir(path):
-                try:
                     print('---------------------------')
                     print(' Printing data for buoy: ', dirrr)
                     print('---------------------------')
@@ -242,13 +245,13 @@ for dirr in os.listdir(dataDir):
                     dataPath = path2 + '/' + os.listdir(path2)[0] + '/data/'
         
                     files = os.listdir(dataPath)
-                    pos_file = [file for file in files if 'Position' in file][0]
+                    files_csv = [f for f in files if f.endswith('.csv')]
+                    pos_file = [file for file in files_csv if 'Position' in file][0]
                     MassBalance_file = [
-                        file for file in files if 'Mass_Balance' in file][0]
-                    Temp_file = [file for file in files if 'Temp' in file][0]
-                    Met_file = [file for file in files if 'Meteo' in file][0]
-                    Meta_file = [file for file in files if 'Metadata' in file][0] 
-        
+                        file for file in files_csv if 'Mass_Balance' in file][0]
+                    Temp_file = [file for file in files_csv if 'Temp' in file][0]
+                    Met_file = [file for file in files_csv if 'Meteo' in file][0]
+                    Meta_file = [file for file in files_csv if 'Metadata' in file][0] 
                     ## Read position data
                     file = open(os.path.join(dataPath, pos_file), 'r')
                     # Reads observation data from ASCII-file
@@ -271,13 +274,13 @@ for dirr in os.listdir(dataDir):
                             try:
                                 initial_SD = float(re.findall(r'\d\.\d+', ', '.join(row))[0])
                                 print(initial_SD)
-                            except: # is nan add 0
+                            except: # if not defined add 0
                                 initial_SD = 0 # np.nan
                         if 'Initial Ice' in ', '.join(row):
                             try:
                                 initial_SIT = float(re.findall(r'\d\.\d+', ', '.join(row))[0])
                                 print(initial_SIT)
-                            except: # is nan add 0
+                            except: # not defined
                                 initial_SIT = np.nan
                                 
         
@@ -298,102 +301,107 @@ for dirr in os.listdir(dataDir):
         
                     # Interpolate positions from position file to the mass data
                     IMB1 = IMB(dirrr, Pos_data)
-                    interpolate_positions(IMB1, Mass_data['Date'])
-                    if np.isfinite(initial_SD):
-                        SD = Mass_data['Snow_Depth'].astype(float) + initial_SD  # meters
-                    else:
-                        SD = Mass_data['Snow_Depth'].astype(float)
-                    SIT = Mass_data['Ice_Thickness'].astype(
-                        float)  # m calculated by TOP-BOP
-        
-                    ## Temperature and mass balance data are recorded with time
-                    # intervals - signifying that if dates are correct they can be
-                    # used simultaniously
-                    Mass_index, Temp_index = Find_temp_file_overlap(
-                        Mass_data['Date'], Temp_data['Date'])
-                    nan_elements = np.delete([i for i in range(len(SD))], Mass_index)
-                    sur_temp = Temp_data['0'][Temp_index].astype(
-                        float)  # degrees celcius at ice surface
-                    for el in nan_elements:
-                        sur_temp = np.insert(sur_temp, el, np.nan)
-        
-                    Mass_index, Met_index = Find_temp_file_overlap(
-                        Mass_data['Date'], Met_data['Date'])
-                    nan_elements = np.delete([i for i in range(len(SD))], Mass_index)
-                    air_temp = Met_data['Air_Temp'][Met_index].astype(
-                        float)  # degrees celcius
-                    for el in nan_elements:
-                        air_temp = np.insert(air_temp, el, np.nan)
-        
-                    #set '-9999' values to np.nan
-                    SD[SD < 0] = np.nan
-                    SIT[SIT < 0] = np.nan
-                    air_temp[air_temp < -900] = np.nan
-                    sur_temp[sur_temp == -900] = np.nan
-        
-                    # Changes date format into date time format
-                    t = np.array([dt.datetime.strptime(s, "%Y-%m-%d %H:%M")
-                                  for s in Mass_data['Date']])
-        
-                    # uncertainty estimate
-                    unc = 0.01  # m
-                    SD_unc = [unc for i in range(len(SD))]
-                    SIT_unc = [unc for i in range(len(SIT))]
-                    dataOut.unc_flag = 3 
-                    
-                    # Create EASEgrid and returns grid cell indicies (index_i, index_j) for each observation
-                    G = EASEgrid.Gridded()
-                    G.SetHemisphere('N')
-                    G.CreateGrids(gridres)
-                    (index_i, index_j) = G.LatLonToIdx(IMB1.lat, IMB1.lon)
-        
-                    # Takes the time for each grid cell into account and calculate averages
-                    avgSD, stdSD, lnSD, uncSD, lat, lon, time, avgSIT, stdSIT, lnSIT, uncSIT, avgFRB, stdFRB, lnFRB, FRB_Unc = G.GridData(
-                        dtint, IMB1.lat, IMB1.lon, t, SD=SD, SD_unc=SD_unc, SIT=SIT, SIT_unc=SIT_unc)
-        
-                    if len(time) > 0:
-                        dataOut.obsID = 'IMB' + dirrr
-                        # Functions.plot(IMB1.lat, IMB1.lon, dataOut.obsID, time,saveplot, HS='NH')
-                        # Functions.scatter(dataOut.obsID, t, SD, time, avgSD, 'SD [m]', saveplot)
-                        # Functions.scatter(dataOut.obsID, t, SIT, time, avgSIT, 'SIT [m]',saveplot)
-                    ## Assign pp-flags
-                    dataOut.pp_flag = Get_ppflag(IMB1, SD, lnSD, lnSIT)
-                    print(dataOut.pp_flag)
-                    
-        
-                    write_info_table(dataOut, initial_SD, initial_SIT, files, Mass_data['Date'],Temp_data['Date'],Met_data['Date'], SD, SIT)
-                    
-                    # ## assign uncertainties
-                    # SD_unc, SIT_unc = Get_uncertainties(lnSD, lnSIT)
-        
-                    # Correlates IMB buoy data with Warren snow depth and snow density
-                    for ll in range(np.size(avgSD,0)):
-                        (w_SD,w_SD_epsilon) = SnowDepth(lat[ll],lon[ll],time[ll].month)
-                        dataOut.w_SD_final = np.append(dataOut.w_SD_final,w_SD)
-                        (wswe,wswe_epsilon) = SWE(lat[ll],lon[ll],time[ll].month)
-                        w_density=int((wswe/w_SD)*1000)
-                        dataOut.w_density_final = np.append(dataOut.w_density_final,w_density)
-        
-                    #Change names to correct format names
-                    dataOut.lat_final = lat
-                    dataOut.lon_final = lon
-                    for ll in range(np.size(time,0)):
-                        dataOut.date_final = np.append(dataOut.date_final,dt.datetime.strftime(time[ll],"%Y-%m-%dT%H:%M:%S"))
-                    dataOut.SD_final = avgSD
-                    dataOut.SD_std = stdSD
-                    dataOut.SD_ln = lnSD
-                    dataOut.SD_unc = uncSD
-                    dataOut.SIT_final = avgSIT
-                    dataOut.SIT_std = stdSIT
-                    dataOut.SIT_ln = lnSIT
-                    dataOut.SIT_unc = uncSIT
-                    
-                    # fill empty arrays with NaN values
-                    dataOut.Check_Output()
+                    if Mass_data.size > 1:
+                       
+                        interpolate_positions(IMB1, Mass_data['Date'])
+
+                        if np.isfinite(initial_SD):
+                            SD = Mass_data['Snow_Depth'].astype(float) + initial_SD  # meters
+                        else:
+                            SD = Mass_data['Snow_Depth'].astype(float)
+                        SIT = Mass_data['Ice_Thickness'].astype(
+                            float)  # m calculated by TOP-BOP
+            
+                        ## Temperature and mass balance data are recorded with time
+                        # intervals - signifying that if dates are correct they can be
+                        # used simultaniously
+                        Mass_index, Temp_index = Find_temp_file_overlap(
+                            Mass_data['Date'], Temp_data['Date'])
+                        nan_elements = np.delete([i for i in range(len(SD))], Mass_index)
+                        sur_temp = Temp_data['0'][Temp_index].astype(
+                            float)  # degrees celcius at ice surface
+                        for el in nan_elements:
+                            sur_temp = np.insert(sur_temp, el, np.nan)
+            
+                        Mass_index, Met_index = Find_temp_file_overlap(
+                            Mass_data['Date'], Met_data['Date'])
+                        nan_elements = np.delete([i for i in range(len(SD))], Mass_index)
+                        air_temp = Met_data['Air_Temp'][Met_index].astype(
+                            float)  # degrees celcius
+                        for el in nan_elements:
+                            air_temp = np.insert(air_temp, el, np.nan)
+            
+                        #set '-9999' values to np.nan
+                        SD[SD < 0] = np.nan
+                        SIT[SIT < 0] = np.nan
+                        air_temp[air_temp < -900] = np.nan
+                        sur_temp[sur_temp < -900] = np.nan
+            
+                        # Changes date format into date time format
+                        t = np.array([dt.datetime.strptime(s, "%Y-%m-%d %H:%M")
+                                      for s in Mass_data['Date']])
+            
+                        # uncertainty estimate
+                        unc = 0.01  # m
+                        SD_unc = [unc for i in range(len(SD))]
+                        SIT_unc = [unc for i in range(len(SIT))]
+                        dataOut.unc_flag = 3 
                         
-                    # print data to output file
-                    dataOut.Print_to_output(ofile, primary='SIT')
-                except:
-                    pass
+                        # Create EASEgrid and returns grid cell indicies (index_i, index_j) for each observation
+                        G = EASEgrid.Gridded()
+                        G.SetHemisphere('N')
+                        G.CreateGrids(gridres)
+                        (index_i, index_j) = G.LatLonToIdx(IMB1.lat, IMB1.lon)
+            
+                        # Takes the time for each grid cell into account and calculate averages
+                        avgSD, stdSD, lnSD, uncSD, lat, lon, time, avgSIT, stdSIT, lnSIT, uncSIT, avgFRB, stdFRB, lnFRB, FRB_Unc, avgTair, avgTsurf = G.GridData(
+                            dtint, IMB1.lat, IMB1.lon, t, SD=SD, SD_unc=SD_unc, SIT=SIT, SIT_unc=SIT_unc, VAR1=air_temp, VAR2=sur_temp)
+            
+                        if len(time) > 0:
+                            dataOut.obsID = 'IMB' + dirrr
+                            Functions.plot(IMB1.lat, IMB1.lon, dataOut.obsID, time,saveplot, HS='NH')
+                            Functions.scatter(dataOut.obsID, t, SD, time, avgSD, 'SD [m]', saveplot)
+                            Functions.scatter(dataOut.obsID, t, SIT, time, avgSIT, 'SIT [m]',saveplot)
+                        ## Assign pp-flags
+                        dataOut.pp_flag = Get_ppflag(IMB1, SD, lnSD, lnSIT)
+                        #print(dataOut.pp_flag)
+                        
+            
+                        write_info_table(dataOut, initial_SD, initial_SIT, files, Mass_data['Date'],Temp_data['Date'],Met_data['Date'], SD, SIT)
+                        
+                        # ## assign uncertainties
+                        # SD_unc, SIT_unc = Get_uncertainties(lnSD, lnSIT)
+            
+                        # Correlates IMB buoy data with Warren snow depth and snow density
+                        for ll in range(np.size(avgSD,0)):
+                            (w_SD,w_SD_epsilon) = SnowDepth(lat[ll],lon[ll],time[ll].month)
+                            dataOut.w_SD_final = np.append(dataOut.w_SD_final,w_SD)
+                            (wswe,wswe_epsilon) = SWE(lat[ll],lon[ll],time[ll].month)
+                            w_density=int((wswe/w_SD)*1000)
+                            dataOut.w_density_final = np.append(dataOut.w_density_final,w_density)
+            
+                        #Change names to correct format names
+                        dataOut.lat_final = lat
+                        dataOut.lon_final = lon
+                        for ll in range(np.size(time,0)):
+                            dataOut.date_final = np.append(dataOut.date_final,dt.datetime.strftime(time[ll],"%Y-%m-%dT%H:%M:%S"))
+                        dataOut.SD_final = avgSD
+                        dataOut.SD_std = stdSD
+                        dataOut.SD_ln = lnSD
+                        dataOut.SD_unc = uncSD
+                        dataOut.SIT_final = avgSIT
+                        dataOut.SIT_std = stdSIT
+                        dataOut.SIT_ln = lnSIT
+                        dataOut.SIT_unc = uncSIT
+                        dataOut.air_temp_final = avgTair
+                        dataOut.sur_temp_final = avgTsurf
+                        
+                        # fill empty arrays with NaN values
+                        dataOut.Check_Output()
+                            
+                        # print data to output file
+                        dataOut.Print_to_output(ofile, primary='SIT')
+                    # except:
+                    #     print(f'directory files: {files}')
 
 Functions.sort_final_data(ofile, saveplot=saveplot)
