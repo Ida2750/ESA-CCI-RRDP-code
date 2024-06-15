@@ -1,21 +1,19 @@
 # -*- coding: utf-8 -*-
 """
+Created on Sun Oct 31 23:18:47 2021
+
+@author: Olsen
+
+Made by Henriette Skorup
+Editted by Ida Olsen 2020
+
 Uses EASE-grid to produce 25 km grid mean values. Mean values are obtained either by the distance limit or the time limit of 30 days.
-Uses input files measured by Snow Buoys from Alfred Wegener Institute
+Uses input files measured by ice breakers from the Antarctic Sea Ice Processes and Climate
 includes Warren snow depths and densities
 """
-# -- File info -- #
-__author__ = 'Ida Olsen'
-__contributors__ = 'Henriette Skorup'
-__contact__ = ['s174020@student.dtu.dk']
-__version__ = '0'
-__date__ = '2023-06-12'
-
-# -- Third-part modules -- #
 import os.path
 import pdb
 import sys
-import datetime as dt
 
 # -- Third-part modules -- #
 import numpy as np
@@ -23,7 +21,7 @@ import EASEgrid
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 import cartopy.feature as cfeature
-
+import datetime as dt
 from PDF_read_initial_SD import pdf_read_initial
 
 # -- Proprietary modules -- #
@@ -71,8 +69,8 @@ def write_info_table(self, date, SD_init, SIT_init, num_sh):
 
 # # Antarctic
 dtint = 30  # days
-gridres = 50000  # m
-hemisphere = 'S'
+gridres = 25000  # m
+hemisphere = 'N'
 
 if hemisphere == 'S':
     directory = os.path.dirname(os.path.dirname(os.getcwd())) + '/RawData/SDB_AWI/Antarctic'
@@ -163,8 +161,8 @@ for dir in os.listdir(directory):
                         (index_i, index_j) = G.LatLonToIdx(latitude[index], longitude[index])
             
                         # Takes the time for each grid cell into account and calculate averages
-                        avgSD, stdSD, lnSD, uncSD, lat, lon, time, avgSIT, stdSIT, lnSIT, uncSIT, avgFRB, stdFRB, lnFRB, FRB_Unc = G.GridData(
-                            dtint, latitude[index], longitude[index], t[index], SD=SD[index], SD_unc=SD_unc[index])
+                        avgSD, stdSD, lnSD, uncSD, lat, lon, time, avgSIT, stdSIT, lnSIT, uncSIT, avgFRB, stdFRB, lnFRB, FRB_Unc, avgTair, avgTsurf = G.GridData(
+                            dtint, latitude[index], longitude[index], t[index], SD=SD[index], SD_unc=SD_unc[index], VAR1=Tair[index])
             
                         if len(time) > 0:
                             Functions.plot(latitude, longitude, dataOut.obsID, time,saveplot, HS=hemisphere +'H')
@@ -192,6 +190,9 @@ for dir in os.listdir(directory):
                         dataOut.SIT_std = stdSIT
                         dataOut.SIT_ln = lnSIT
                         dataOut.SIT_unc = uncSIT
+                        dataOut.air_temp_final = avgTair
+                        
+                        dataOut.obsID = [dataOut.obsID]*len(dataOut.SD_final)
                         
                         # fill empty arrays with NaN values
                         dataOut.Check_Output()
