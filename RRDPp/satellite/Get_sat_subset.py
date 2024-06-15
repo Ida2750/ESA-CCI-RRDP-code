@@ -42,10 +42,10 @@ def check_filesize(OBSID,SATELLITE, check_count, save_path):
     
 #---------------------------------
 ''' Define these parameters'''
-OBSID = "TRANSDRIFT" # Name of campaign
+OBSID = "ASSIST" # Name of campaign
 SATELLITE = "CS2" # Satelitte name (either ENV, CS2, ERS1 or ERS2)
 # name of reference data file
-obsfile =  os.path.dirname(os.getcwd()) + "/FINAL/" + OBSID + "/final/ESACCIplus-SEAICE-RRDP2+-SID-" + OBSID + ".dat" 
+obsfile =  os.path.dirname(os.getcwd()) + "/FINAL/" + OBSID + "/final/ESACCIplus-SEAICE-RRDP2+-SIT-" + OBSID + ".dat" 
 HS   = 'NH' # Hemisphere of observations (either Northen Hemisphere (NH) or Southern Hemisphere (SH))
 # -------------------------------------------
 
