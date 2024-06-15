@@ -41,18 +41,18 @@ For an overview of the satellite folder see the diagram above.\
 
 
 # Credits
-This project was made Henriette Skourup and Ida Olsen. Data used in the project were gathered by several external organisations. \
-For data availability, credits and acknowledgements, please see the publication linked to this project and remember to acknowledge and \
-cite relevant data sources when using data from this project\
+This project was made Henriette Skourup and Ida Olsen. Data used in the project were gathered by several external organisations. 
+For data availability, credits and acknowledgements, please see the publication linked to this project and remember to acknowledge and 
+cite relevant data sources when using data from this project
 
 # License
-This project is made available under the CC BY 4.0 license meaning that you are free to:\
-Share, copy and redistribute the material. Adapt, remix , transform and build upon the material.\
+This project is made available under the CC BY 4.0 license meaning that you are free to:
+Share, copy and redistribute the material. Adapt, remix , transform and build upon the material.
 
-When using code, or data from this project please include the citation:\
+When using code, or data from this project please include the citation:
 Olsen, I. L. and Skourup, H.: Sea ice thickness reference measurements (ESA CCI SIT RRDP), Dataset, https://doi.org/10.11583/DTU.24787341, 2024a.
 
-and the acknowledgement:\
-This datapackage and code was made by Ida Olsen and Henriette Skourup from the Technical University of Denmark\
+and the acknowledgement:
+This datapackage and code was made by Ida Olsen and Henriette Skourup from the Technical University of Denmark
 
-You are also required to provide a citation to the raw data sources, when using this data. \
+You are also required to provide a citation to the raw data sources, when using this data. 
