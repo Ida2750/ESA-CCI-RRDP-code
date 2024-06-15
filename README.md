@@ -1,11 +1,11 @@
 # Project's Title:
-Dual hemisphere reference dataset for sea ice thickness, snow depth, draft and freeboard, Climate Change Initiative sea ice thickness Round Robin Data Package (CCI SIT RRDP)
+Code for sea ice thickness reference measurements
 
 
 # Project Description:
-The Climate Change Initiative sea ice thickness Round Robin Data Package (CCI SIT RRDP) is a set of space delimitted ASCII files which contain a range of relevant reference sea ice variables, including sea ice thickness, snow depth, draft and freeboard, along with snow depth and density from Warren climatology (1999) for Arctic. Sea ice surface temperature and air temperature is also provided when available. The data has been gridded into a 25 by 25 km product for Arctic and 50 by 50 km for Antarctic using EASE-grid 2.0 and contains monthly averages of the given gridpoint. Reference data from autonomous buoys, moorings, submarines, ships (ice breakers), airborne campaigns (radar/laser altimetry and electromagnetic induction system) and in-situ measurements is provided in the final dataset. This dataset is available from DTU DATA (DOI:10.11583/DTU.23735679) and is described in the belonging publication with DOI: **INSERT DOI**.\
+The Climate Change Initiative sea ice thickness Round Robin Data Package (CCI SIT RRDP) is a set of space delimitted ASCII files which contain a range of relevant reference sea ice variables, including sea ice thickness, snow depth, draft and freeboard, along with snow depth and density from Warren climatology (1999) for Arctic. Sea ice surface temperature and air temperature is also provided when available. The data has been gridded into a 25 by 25 km product for Arctic and 50 by 50 km for Antarctic using EASE-grid 2.0 and contains monthly averages of the given gridpoint. Reference data from autonomous buoys, moorings, submarines, ships (ice breakers), airborne campaigns (radar/laser altimetry and electromagnetic induction system) and in-situ measurements is provided in the final dataset. This dataset is available from DTU DATA (DOI:10.11583/DTU.23735679) and described in the publication DOI: **INSERT DOI**.\
 
-This repository provides the code used for processing from raw referende data to the final gridded product and the code used for co-locating reference data to satellite measurements from Envisat, CryoSat-2, ERS-1 and ERS-2. For examples of use, further information and inspiration we refer to the belonging paper: *"Dual-hemisphere sea ice thickness referencemeasurements from multiple data sources for evaluationand product inter-comparison of satellite altimetry"* with DOI: **INSERT DOI**
+This repository provides the code used for processing from raw reference data to the final gridded product and the code used for co-locating reference data to satellite measurements from Envisat, CryoSat-2, ERS-1 and ERS-2. For examples of use, further information and inspiration we refer to the belonging paper: *"Dual-hemisphere sea ice thickness reference measurements from multiple data sources for evaluationand product inter-comparison of satellite altimetry"* with DOI: **INSERT DOI**
 We highly recomend potential users of the repository to read the paper.
 
 # How to Install and Run the Project:
@@ -50,7 +50,7 @@ This project is made available under the CC BY 4.0 license meaning that you are 
 Share, copy and redistribute the material. Adapt, remix , transform and build upon the material.\
 
 When using code, or data from this project please include the citation:\
-**INSERT CITATION**
+Olsen, I. L. and Skourup, H.: Sea ice thickness reference measurements (ESA CCI SIT RRDP), Dataset, https://doi.org/10.11583/DTU.24787341, 2024a.
 
 and the acknowledgement:\
 This datapackage and code was made by Ida Olsen and Henriette Skourup from the Technical University of Denmark\
