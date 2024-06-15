@@ -1,18 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Note: In upcoming versions, the orbit data will be provided in
-      self describing netcdf data format
-
-Adapted for use of ESA CCI phase 2, SIT RRDP, Henriette Skourup, DTU Space, February 2016 
-"""
 
 # -- File info -- #
 __author__ = 'Henriette Skorup'
 __contributors__ = 'Ida Olsen'
 __contact__ = ['hsk@dtu.dk']
-__version__ = '0'
-__date__ = '2016-02-01'
+__version__ = '1'
+__date__ = '2023-06-01'
 
 
 # -- Built-in modules -- #
