@@ -1,22 +1,7 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-DISCLAIMER: This is a modified version of NASA's Ease-Grid 2.0
-
-The only modification made compared to the original scripts is to include the
-computation of additional variables with the grid.
-
-The method of computation follows the original script.
-"""
-
-# -- File info -- #
-__author__ = 'NASA'
-__contributors__ = 'Ida Olsen, Henriette Skorup'
-__contact__ = ['iblol@dtu.dk']
-__version__ = '0'
-__date_modified__ = '2022-07-13'
-
 class Gridded:
+
+
+
     def __init__(self):
         import pdb;
         import pyproj
@@ -83,6 +68,8 @@ class Gridded:
         sit_unc_list = list()
         Frb_list = list()
         Frb_unc_list = list()
+        var1_list = list()
+        var2_list = list()
         lat_list = list()
         lon_list = list()
         tn_list = list()
@@ -96,6 +83,8 @@ class Gridded:
             sit_unc_list.append(list()) 
             Frb_list.append(list())
             Frb_unc_list.append(list())
+            var1_list.append(list())
+            var2_list.append(list())
             lon_list.append(list())
             lat_list.append(list())
             tn_list.append(list())
@@ -107,6 +96,8 @@ class Gridded:
                 sit_unc_list[i].append(list()) 
                 Frb_list[i].append(list())
                 Frb_unc_list[i].append(list())
+                var1_list[i].append(list())
+                var2_list[i].append(list())
                 lat_list[i].append(list())
                 lon_list[i].append(list())
                 td_list[i].append(list())
@@ -117,6 +108,8 @@ class Gridded:
         self.sit_unc_list = sit_unc_list
         self.Frb_list = Frb_list
         self.Frb_unc_list = Frb_unc_list
+        self.var1_list = var1_list
+        self.var2_list = var2_list
         self.lon_list = lon_list
         self.lat_list = lat_list
         self.td_list = td_list
@@ -145,7 +138,7 @@ class Gridded:
 
 
 
-    def GridData(self, tlim, vec_lat, vec_lon, t, SD=[], SD_unc=[], SIT=[], SIT_unc=[], FRB=[], FRB_unc=[]):
+    def GridData(self, tlim, vec_lat, vec_lon, t, SD=[], SD_unc=[], SIT=[], SIT_unc=[], FRB=[], FRB_unc=[], VAR1=[], VAR2=[]):
         #import pdb;
         import numpy as np
         import warnings
@@ -169,7 +162,15 @@ class Gridded:
             FRB = np.array(vec_lat) * np.nan
 
         if len(FRB_unc) == 0:
-            FRB_unc = np.array(vec_lat) * np.nan            
+            FRB_unc = np.array(vec_lat) * np.nan
+        
+        # e.g. air temperature
+        if len(VAR1) == 0:
+            VAR1 = np.array(vec_lat) * np.nan
+        
+        # e.g. surface temperature
+        if len(VAR2) == 0:
+            VAR2 = np.array(vec_lat) * np.nan
 
         vec_i, vec_j = self.LatLonToIdx(vec_lat, vec_lon)
 
@@ -194,6 +195,8 @@ class Gridded:
                 self.sit_unc_list[int(vec_i[i])][int(vec_j[i])].append(SIT_unc[i])
                 self.Frb_list[int(vec_i[i])][int(vec_j[i])].append(FRB[i])
                 self.Frb_unc_list[int(vec_i[i])][int(vec_j[i])].append(FRB_unc[i])
+                self.var1_list[int(vec_i[i])][int(vec_j[i])].append(VAR1[i])
+                self.var2_list[int(vec_i[i])][int(vec_j[i])].append(VAR2[i])
                 self.td_list[int(vec_i[i])][int(vec_j[i])].append(t[i])
                 self.lat_list[int(vec_i[i])][int(vec_j[i])].append(xx[i])
                 self.lon_list[int(vec_i[i])][int(vec_j[i])].append(yy[i])
@@ -223,6 +226,10 @@ class Gridded:
         outlnSIT = []
         outUncSIT = []
         
+        # Additional variables e.g. surface temperature/air temperature
+        outVAR1 = []
+        outVAR2 = []
+        
         ## longitude
         for i in range(len(self.xc)):
             ## lattitude
@@ -243,6 +250,8 @@ class Gridded:
                     sit_unc = []
                     Frb = []
                     frb_unc = []
+                    var1 = []
+                    var2 = []
 
                     for n in range(len(self.td_list[i][j])):
                         ## Add data if the time limit is less than 30 days
@@ -255,6 +264,9 @@ class Gridded:
                             
                             Frb=np.append(Frb,self.Frb_list[i][j][n])
                             frb_unc=np.append(frb_unc,self.Frb_unc_list[i][j][n])
+                            
+                            var1 = np.append(var1,self.var1_list[i][j][n])
+                            var2 = np.append(var2,self.var2_list[i][j][n])
                             
                             lat=np.append(lat,self.lat_list[i][j][n])
                             lon=np.append(lon,self.lon_list[i][j][n])
@@ -277,6 +289,8 @@ class Gridded:
                                 stdFrb = np.std(Frb[np.isnan(Frb)==0])
                                 lnFrb = len(Frb[np.isnan(Frb)==0])
                                 avgFrb = np.nanmean(Frb)
+                                avgVAR1 = np.nanmean(var1)
+                                avgVar2 = np.nanmean(var2)
                                 avgLat = np.mean(lat)
                                 avgLon = np.mean(lon)
                                 avgDT = np.mean(dt0)
@@ -305,6 +319,8 @@ class Gridded:
                             outSIT = np.append(outSIT,avgSIT)
                             outstdSIT = np.append(outstdSIT,stdSIT)
                             outlnSIT = np.append(outlnSIT,lnSIT)
+                            outVAR1 = np.append(outVAR1,avgVAR1)
+                            outVAR2 = np.append(outVAR2,avgVar2)
                             outxx = np.append(outxx,avgLat) 
                             outyy = np.append(outyy,avgLon) 
                             outtime = np.append(outtime,avgTime)
@@ -325,6 +341,8 @@ class Gridded:
                             lon = []
                             Frb = []
                             frb_unc = []
+                            var1 = []
+                            var2 = []
                             dt0 = []
                             
                             sd = np.append(sd,self.sd_list[i][j][n])
@@ -333,6 +351,8 @@ class Gridded:
                             frb_unc = np.append(frb_unc,self.Frb_unc_list[i][j][n])
                             sit = np.append(sit,self.sit_list[i][j][n])
                             sit_unc = np.append(sit_unc,self.sit_unc_list[i][j][n])
+                            var1 = np.append(var1,self.var1_list[i][j][n])
+                            var2 = np.append(var2,self.var2_list[i][j][n])
                             lat = np.append(lat,self.lat_list[i][j][n])
                             lon = np.append(lon,self.lon_list[i][j][n])
                             dt0 = np.append(dt0,(self.td_list[i][j][n] - t0).total_seconds())
@@ -352,6 +372,8 @@ class Gridded:
                                     stdFrb = np.std(Frb[np.isnan(Frb)==0])
                                     lnFrb = len(Frb[np.isnan(Frb)==0])
                                     avgFrb = np.nanmean(Frb)
+                                    avgVAR1 = np.nanmean(var1)
+                                    avgVar2 = np.nanmean(var2)
                                     avgLat = np.mean(lat)
                                     avgLon = np.mean(lon)
                                     avgDT = np.mean(dt0)
@@ -380,6 +402,8 @@ class Gridded:
                                 outSIT = np.append(outSIT,avgSIT)
                                 outstdSIT = np.append(outstdSIT,stdSIT)
                                 outlnSIT = np.append(outlnSIT,lnSIT)
+                                outVAR1 = np.append(outVAR1,avgVAR1)
+                                outVAR2 = np.append(outVAR2,avgVar2)
                                 outxx = np.append(outxx,avgLat) 
                                 outyy = np.append(outyy,avgLon) 
                                 outtime = np.append(outtime,avgTime)
@@ -400,6 +424,8 @@ class Gridded:
                             stdFrb = np.std(Frb[np.isnan(Frb)==0])
                             lnFrb = len(Frb[np.isnan(Frb)==0])
                             avgFrb = np.nanmean(Frb)
+                            avgVAR1 = np.nanmean(var1)
+                            avgVar2 = np.nanmean(var2)
                             avgLat = np.mean(lat)
                             avgLon = np.mean(lon)
                             avgDT = np.mean(dt0)
@@ -428,6 +454,8 @@ class Gridded:
                         outSIT = np.append(outSIT,avgSIT)
                         outstdSIT = np.append(outstdSIT,stdSIT)
                         outlnSIT = np.append(outlnSIT,lnSIT)
+                        outVAR1 = np.append(outVAR1,avgVAR1)
+                        outVAR2 = np.append(outVAR2,avgVar2)
                         outxx = np.append(outxx,avgLat) 
                         outyy = np.append(outyy,avgLon) 
                         outtime = np.append(outtime,avgTime)
@@ -439,7 +467,7 @@ class Gridded:
        
         outlon,outlat = self.EASE_proj(outxx,outyy,inverse=True)
 
-        return outavgsd, outstdsd, outlnsd, outUncSD, outlat, outlon, outtime, outSIT, outstdSIT, outlnSIT, outUncSIT, outFrb, outstdFrb, outlnFrb, outUncFrb
+        return outavgsd, outstdsd, outlnsd, outUncSD, outlat, outlon, outtime, outSIT, outstdSIT, outlnSIT, outUncSIT, outFrb, outstdFrb, outlnFrb, outUncFrb, outVAR1, outVAR2
 
          
 

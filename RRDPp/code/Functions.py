@@ -97,6 +97,13 @@ class Final_Data:
             self.sur_temp_final = np.zeros(np.shape(self.lat_final)) * np.nan
         if len(self.air_temp_final) == 0:
             self.air_temp_final = np.zeros(np.shape(self.lat_final)) * np.nan
+        
+        # if any Warren SD are negative set them to NaN
+        self.w_SD_final[self.w_SD_final<0]=np.nan
+        # if any Warren rho are negative or larger than 900 set them to NaN
+        self.w_density_final[self.w_density_final<0]=np.nan
+        self.w_density_final[self.w_density_final<0]=np.nan
+        
 
     def Print_to_output(self, ofile, primary='SIT'):
         # print header on output file
@@ -115,9 +122,9 @@ class Final_Data:
         # Append processed data to file
         output = open(ofile, 'a')
         for ll in range(np.size(self.date_final, 0)):
-            if primary == 'SIT':
-                if self.SIT_ln[ll] != 0:  # if we have non nan data for SIT
-                    if type(self.obsID)==str and  type(self.pp_flag)==str or type(self.obsID)==str and  type(self.pp_flag)==int:
+            if ((primary == 'SIT') | (primary == 'SD') | (primary == 'FRB')):
+                if ((self.SIT_ln[ll] != 0) | (self.SD_ln[ll] != 0) | (self.FRB_ln[ll] != 0)):  # if we have non nan data for SIT, SD or FRB
+                    if type(self.obsID)==str and  type(self.pp_flag)==str:
                         print('{:^30s} {:^20s} {:^8.3f} {:^8.3f} {:^7.3f} {:^7.3f} {:^6.0f} {:^7.3f} {:^7.3f} {:^7.3f} {:^6.0f} {:^7.3f} {:^7.3f} {:^7.3f} {:^6.0f} {:^7.3f} {:^7.3f} {:^7.3f} {:^7.3f} {:^4.0f} {:^7d} {:^7d}'.format(self.obsID, (self.date_final[ll]), self.lat_final[ll], self.lon_final[ll], self.SD_final[ll], self.SD_std[ll], self.SD_ln[
                               ll], self.SD_unc[ll], self.SIT_final[ll], self.SIT_std[ll], self.SIT_ln[ll], self.SIT_unc[ll], self.FRB_final[ll], self.FRB_std[ll], self.FRB_ln[ll], self.FRB_unc[ll], self.sur_temp_final[ll], self.air_temp_final[ll], self.w_SD_final[ll]/100., self.w_density_final[ll], self.pp_flag, self.unc_flag), file=output)
                         # print('{:^30s} {:^20s} {:^8.3f} {:^8.3f} {:^7.3f} {:^7.3f} {:^6.0f} {:^7.3f} {:^7.3f} {:^7.3f} {:^6.0f} {:^7.3f} {:^7.3f} {:^7.3f} {:^6.0f} {:^7.3f} {:^7.3f} {:^7.3f} {:^7.3f} {:^4.0f} {:^7d} {:^7d}'.format(self.obsID, (self.date_final[ll]), self.lat_final[ll], self.lon_final[ll], self.SD_final[ll], self.SD_std[ll], self.SD_ln[
@@ -126,18 +133,9 @@ class Final_Data:
                         print('{:^30s} {:^20s} {:^8.3f} {:^8.3f} {:^7.3f} {:^7.3f} {:^6.0f} {:^7.3f} {:^7.3f} {:^7.3f} {:^6.0f} {:^7.3f} {:^7.3f} {:^7.3f} {:^6.0f} {:^7.3f} {:^7.3f} {:^7.3f} {:^7.3f} {:^4.0f} {:^7.0f} {:^7d}'.format(self.obsID, (self.date_final[ll]), self.lat_final[ll], self.lon_final[ll], self.SD_final[ll], self.SD_std[ll], self.SD_ln[
                               ll], self.SD_unc[ll], self.SIT_final[ll], self.SIT_std[ll], self.SIT_ln[ll], self.SIT_unc[ll], self.FRB_final[ll], self.FRB_std[ll], self.FRB_ln[ll], self.FRB_unc[ll], self.sur_temp_final[ll], self.air_temp_final[ll], self.w_SD_final[ll]/100., self.w_density_final[ll], self.pp_flag[ll], self.unc_flag), file=output)
                     else:
+                        print(self.obsID[ll])
                         print('{:^30s} {:^20s} {:^8.3f} {:^8.3f} {:^7.3f} {:^7.3f} {:^6.0f} {:^7.3f} {:^7.3f} {:^7.3f} {:^6.0f} {:^7.3f} {:^7.3f} {:^7.3f} {:^6.0f} {:^7.3f} {:^7.3f} {:^7.3f} {:^7.3f} {:^4.0f} {:^7d} {:^7d}'.format(self.obsID[ll], (self.date_final[ll]), self.lat_final[ll], self.lon_final[ll], self.SD_final[ll], self.SD_std[ll], self.SD_ln[
                               ll], self.SD_unc[ll], self.SIT_final[ll], self.SIT_std[ll], self.SIT_ln[ll], self.SIT_unc[ll], self.FRB_final[ll], self.FRB_std[ll], self.FRB_ln[ll], self.FRB_unc[ll], self.sur_temp_final[ll], self.air_temp_final[ll], self.w_SD_final[ll]/100., self.w_density_final[ll], self.pp_flag, self.unc_flag), file=output)
-            elif primary == 'SD':
-                if self.SD_ln[ll] != 0:  # if we have non nan data for SIT
-                    print('{:^30s} {:^20s} {:^8.3f} {:^8.3f} {:^7.3f} {:^7.3f} {:^6.0f} {:^7.3f} {:^7.3f} {:^7.3f} {:^6.0f} {:^7.3f} {:^7.3f} {:^7.3f} {:^6.0f} {:^7.3f} {:^7.3f} {:^7.3f} {:^7.3f} {:^4.0f} {:^7d} {:^7d}'.format(self.obsID, (self.date_final[ll]), self.lat_final[ll], self.lon_final[ll], self.SD_final[ll], self.SD_std[ll], self.SD_ln[
-                          ll], self.SD_unc[ll], self.SIT_final[ll], self.SIT_std[ll], self.SIT_ln[ll], self.SIT_unc[ll], self.FRB_final[ll], self.FRB_std[ll], self.FRB_ln[ll], self.FRB_unc[ll], self.sur_temp_final[ll], self.air_temp_final[ll], self.w_SD_final[ll]/100., self.w_density_final[ll], self.pp_flag, self.unc_flag), file=output)
-
-            elif primary == 'FRB':
-                if self.FRB_ln[ll] != 0:  # if we have non nan data for SIT
-                    print('{:^30s} {:^20s} {:^8.3f} {:^8.3f} {:^7.3f} {:^7.3f} {:^6.0f} {:^7.3f} {:^7.3f} {:^7.3f} {:^6.0f} {:^7.3f} {:^7.3f} {:^7.3f} {:^6.0f} {:^7.3f} {:^7.3f} {:^7.3f} {:^7.3f} {:^4.0f} {:^7d} {:^7d}'.format(self.obsID, (self.date_final[ll]), self.lat_final[ll], self.lon_final[ll], self.SD_final[ll], self.SD_std[ll], self.SD_ln[
-                          ll], self.SD_unc[ll], self.SIT_final[ll], self.SIT_std[ll], self.SIT_ln[ll], self.SIT_unc[ll], self.FRB_final[ll], self.FRB_std[ll], self.FRB_ln[ll], self.FRB_unc[ll], self.sur_temp_final[ll], self.air_temp_final[ll], self.w_SD_final[ll]/100., self.w_density_final[ll], self.pp_flag, self.unc_flag), file=output)
-
             elif primary == 'SID':
                 if self.SID_ln[ll] != 0:  # if we have non nan data for SID
                     try:
@@ -302,6 +300,7 @@ def compute_SD_SIT(conc_tot, cc_P, SIT_P, SD_P, cc_S, SIT_S, SD_S, cc_T, SIT_T, 
             SD_eff_S = np.multiply(np.divide(cc_S[kk], conc_tot[kk]), SD_S[kk])
             SD_eff_T = np.multiply(np.divide(cc_T[kk], conc_tot[kk]), SD_T[kk])
 
+            print(SIT_P)
             # Append non nan value if:
             # 1. The total concentration is the same as the sum of the partial concentrations
             # 2. As a minimum one of the SIT/SD_eff are non nan
@@ -430,9 +429,9 @@ def sort_final_data(ofile, saveplot, HS='NH', primary='SIT'):
         print('Average STD FRB: ', np.nanmean(data['FRBstd']))
         print('Average Unc FRB: ', np.nanmean(data['FRBunc']))
 
-        print('Average SID: ', np.nanmean(data['SID']))
-        print('Average STD SID: ', np.nanmean(data['SIDstd']))
-        print('Average Unc SID: ', np.nanmean(data['SIDunc']))
+        # print('Average SID: ', np.nanmean(data['SID']))
+        # print('Average STD SID: ', np.nanmean(data['SIDstd']))
+        # print('Average Unc SID: ', np.nanmean(data['SIDunc']))
 
         plot(data['lat'], data['lon'], 'All', dates, saveplot, HS=HS)
 
