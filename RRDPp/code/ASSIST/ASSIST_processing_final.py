@@ -28,6 +28,71 @@ sys.path.append(os.path.dirname(os.getcwd()))
 import EASEgrid_correct as EASEgrid
 import Functions
 
+#%% Functions
+
+def compute_SD_SIT(conc_tot, cc_P, SIT_P, SD_P, cc_S, SIT_S, SD_S, cc_T,SIT_T, SD_T):
+    SD = [];
+    SIT = [];
+    for kk in range(len(conc_tot)):
+        # print(kk)
+        if conc_tot[kk]>0 and ~np.isnan(conc_tot[kk]):    
+    
+            SIT_eff_P = np.multiply(np.divide(cc_P[kk],conc_tot[kk]),SIT_P[kk])
+            SIT_eff_S = np.multiply(np.divide(cc_S[kk],conc_tot[kk]),SIT_S[kk])
+            SIT_eff_T = np.multiply(np.divide(cc_T[kk],conc_tot[kk]),SIT_T[kk])
+    
+            SD_eff_P = np.multiply(np.divide(cc_P[kk],conc_tot[kk]),SD_P[kk])
+            SD_eff_S = np.multiply(np.divide(cc_S[kk],conc_tot[kk]),SD_S[kk])
+            SD_eff_T = np.multiply(np.divide(cc_T[kk],conc_tot[kk]),SD_T[kk])
+            
+            # Append non nan value if:
+            # 1. The total concentration is the same as the sum of the partial concentrations
+            # 2. As a minimum one of the SIT/SD_eff are non nan
+            try:
+                assert ~np.isnan(cc_P[kk]) or ~np.isnan(cc_S[kk]) or ~np.isnan(cc_T[kk])
+                assert np.nansum([cc_P[kk],cc_S[kk],cc_T[kk]]) == conc_tot[kk]
+                assert ~np.isnan(SIT_eff_P) or ~np.isnan(SIT_eff_S) or ~np.isnan(SIT_eff_T)
+                SIT = np.append(SIT,np.nansum([SIT_eff_P,SIT_eff_S,SIT_eff_T]))
+            except AssertionError:
+                SIT = np.append(SIT, np.nan)
+            try:
+                assert ~np.isnan(cc_P[kk]) or ~np.isnan(cc_S[kk]) or ~np.isnan(cc_T[kk])
+                assert np.nansum([cc_P[kk],cc_S[kk],cc_T[kk]]) == conc_tot[kk]
+                assert ~np.isnan(SD_eff_P) or ~np.isnan(SD_eff_S) or ~np.isnan(SD_eff_T)
+                SD = np.append(SD,np.nansum([SD_eff_P,SD_eff_S,SD_eff_T]))
+            except AssertionError:
+                SD = np.append(SD, np.nan)
+     
+        elif conc_tot[kk]==0: # Everything is water      
+            SIT = np.append(SIT,0)
+            SD = np.append(SD,0)
+        else:
+            SIT = np.append(SIT,np.nan)
+            SD = np.append(SD,np.nan)
+    return SD,SIT
+
+def Get_unc(SD, SIT):
+    SD_unc = []
+    SIT_unc = []
+    for sit, sd in zip(SIT,SD):
+        if np.isnan(sit):
+            SIT_unc.append(np.nan)
+        elif sit<=0.10: # m
+            SIT_unc.append(sit*0.5)
+        elif sit<=0.3: # m
+            SIT_unc.append(sit*0.3)
+        elif sit>0.3:
+            SIT_unc.append(sit*0.2)    
+        if np.isnan(sd):
+            SD_unc.append(np.nan)
+        elif sd<=0.10: # m
+            SD_unc.append(sd*0.5)
+        elif sd<=0.3: # m
+            SD_unc.append(sd*0.3)
+        elif sd>0.3:
+            SD_unc.append(sd*0.2)
+    return SD_unc, SIT_unc 
+
 #%% Main
 
 parrent = os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd())))
@@ -36,7 +101,7 @@ directory = parrent + '/RRDPp/RawData/ASSIST'
 # saving location
 save_path_data=parrent + '/RRDPp/FINAL/ASSIST/final/'
 saveplot = parrent + '/RRDPp/FINAL/ASSIST/fig/'
-ofile ='ESACCIplus-SEAICE-RRDP2+-SIT-ASSIST.dat'
+ofile ='ESACCIplus-SEAICE-RRDP2+-SIT-ASSIST-v4-test2.dat'
 ofile = os.path.join(save_path_data,ofile)
 
 gridres = 25000  # grid resolution
@@ -137,10 +202,10 @@ for dir in directories:
                 # SIT_unc = np.ones(len(latitude)) * 0.20
                 # SIT_unc[np.isnan(SIT)] = np.nan
                 
-                SD_unc, SIT_unc =  Functions.Get_unc(SD, SIT)
+                SD_unc, SIT_unc = Functions.Get_unc(SD, SIT)
                 # Takes the time for each grid cell into account and calculate averages
                 (avgSD, stdSD, lnSD, uncSD, lat, lon, time, avgSIT, stdSIT, lnSIT, uncSIT, avgFRB, stdFRB,
-                 lnFRB, FRB_Unc,) = G.GridData(dtint, latitude, longitude, t, SD, SD_unc, SIT, SIT_unc, Frb=[], Frb_unc=[])
+                 lnFRB, FRB_Unc,) = G.GridData(dtint, latitude, longitude, t, SD, SD_unc, SIT, SIT_unc, FRB=[], FRB_unc=[])
                 
                 if len(time)>0:
                     Functions.plot(lat, lon, dataOut.obsID, time,saveplot)
@@ -156,19 +221,23 @@ for dir in directories:
                     w_density=int((wswe/w_SD)*1000)
                     dataOut.w_density_final = np.append(dataOut.w_density_final,w_density)
                 
+                # remove SD measurements where the number of SIT measurements are zero
+                # If SIT is not recorded we do not trust the SD measurements
+                index = lnSIT != 0
                 #Change names to correct format names
-                dataOut.lat_final = lat
-                dataOut.lon_final = lon
-                for ll in range(np.size(time,0)):
+                dataOut.lat_final = lat[index]
+                dataOut.lon_final = lon[index]
+                for ll in range(np.size(time[index],0)):
                     dataOut.date_final = np.append(dataOut.date_final,dt.datetime.strftime(time[ll],"%Y-%m-%dT%H:%M:%S"))
-                dataOut.SD_final = avgSD
-                dataOut.SD_std = stdSD
-                dataOut.SD_ln = lnSD
-                dataOut.SD_unc = uncSD
-                dataOut.SIT_final = avgSIT
-                dataOut.SIT_std = stdSIT
-                dataOut.SIT_ln = lnSIT
-                dataOut.SIT_unc = uncSIT
+                dataOut.SD_final = avgSD[index]
+                dataOut.SD_std = stdSD[index]
+                dataOut.SD_ln = lnSD[index]
+                dataOut.SD_unc = uncSD[index]
+                dataOut.SIT_final = avgSIT[index]
+                dataOut.SIT_std = stdSIT[index]
+                dataOut.SIT_ln = lnSIT[index]
+                dataOut.SIT_unc = uncSIT[index]
+                dataOut.obsID = [dataOut.obsID]*len(dataOut.SIT_final)
                 
                 # fill empty arrays with NaN values
                 dataOut.Check_Output()
