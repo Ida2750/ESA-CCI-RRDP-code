@@ -8,7 +8,7 @@ includes Warren snow depths and densities
 
 __author__ = 'Ida Olsen'
 __contributors__ = 'Henriette Skorup'
-__contact__ = ['s174020@student.dtu.dk']
+__contact__ = ['ilo@dmi.dk']
 __version__ = '0'
 __date__ = '2023-06-12'
 """
@@ -85,7 +85,7 @@ for filename in os.listdir(directory):
             # uncertainty of 10 cm approx.
             if filename.startswith('ULS_1893') or filename.startswith('ULS_Taymyr'):
                 SID_Unc = np.array([0.05 for sid in SID])
-            else:
+            else: # ACDP's - these have a higher uncertainty than the ULS's
                 SID_Unc = np.array([0.96 for sid in SID])
     
             # set non existing data to nan
