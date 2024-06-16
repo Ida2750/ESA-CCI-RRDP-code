@@ -17,7 +17,7 @@ includes Warren snow depths and densities
 # -- File info -- #
 __author__ = 'Ida Olsen'
 __contributors__ = 'Henriette Skorup'
-__contact__ = ['s174020@student.dtu.dk']
+__contact__ = ['ilo@dmi.dk']
 __version__ = '0'
 __date__ = '2022-01-25'
 
