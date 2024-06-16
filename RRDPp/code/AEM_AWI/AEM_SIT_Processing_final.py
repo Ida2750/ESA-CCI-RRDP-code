@@ -140,7 +140,6 @@ for dir in directories:
                 
                 ## Define fixed uncertainty
                 SIT_unc = np.ones(len(latitude)) * 0.10
-                dataOut.unc_flag = 2
                 
                 # Create EASEgrid and returns grid cell indicies (index_i, index_j) for each observation
                 G = EASEgrid.Gridded()
@@ -149,12 +148,11 @@ for dir in directories:
                 (index_i, index_j) = G.LatLonToIdx(latitude, longitude)
     
                 # Takes the time for each grid cell into account and calculate averages
-                avgSD, stdSD, lnSD, uncSD, lat, lon, time, avgSIT, stdSIT, lnSIT, uncSIT, avgFRB, stdFRB, lnFRB, FRB_Unc = G.GridData(
+                avgSD, stdSD, lnSD, uncSD, lat, lon, time, avgSIT, stdSIT, lnSIT, uncSIT, avgFRB, stdFRB, lnFRB, FRB_Unc, var1, var2 = G.GridData(
                     dtint, latitude, longitude, t, SIT=SIT, SIT_unc=SIT_unc)
-
-                # set uncertainty flag to 3 for deformed ice
-                if avgSIT > 3.0:
-                    dataOut.unc_flag = 3
+                
+                dataOut.unc_flag = np.ones(len(avgSIT)).astype(int)*2
+                dataOut.unc_flag[avgSIT>3] = 3
                     
                 if len(time) > 0:
                     Functions.plot(latitude, longitude, dataOut.obsID, time,saveplot, HS='NH')
