@@ -1,19 +1,22 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Oct 31 23:18:47 2021
-
-@author: Olsen
-
-Made by Henriette Skorup
-Editted by Ida Olsen 2020
-
 Uses EASE-grid to produce 25 km grid mean values. Mean values are obtained either by the distance limit or the time limit of 30 days.
-Uses input files measured by ice breakers from the Antarctic Sea Ice Processes and Climate
+Uses input files measured by Alfred Wegener Institute Snow Depth Buoys.
 includes Warren snow depths and densities
 """
+
+# -- File info -- #
+__author__ = 'Ida Olsen'
+__contributors__ = 'Henriette Skorup'
+__contact__ = ['ilo@dmi.dk']
+__version__ = '1'
+__date__ = '2023-06-20'
+
+# -- Built-in modules -- #
 import os.path
 import pdb
 import sys
+import datetime as dt
 
 # -- Third-part modules -- #
 import numpy as np
@@ -21,14 +24,13 @@ import EASEgrid
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 import cartopy.feature as cfeature
-import datetime as dt
-from PDF_read_initial_SD import pdf_read_initial
 
 # -- Proprietary modules -- #
 from Warren import SnowDepth, SWE
 sys.path.append(os.path.dirname(os.getcwd()))
 import EASEgrid_correct as EASEgrid
 import Functions
+from PDF_read_initial_SD import pdf_read_initial
 
 
 def write_info_table(self, date, SD_init, SIT_init, num_sh):
