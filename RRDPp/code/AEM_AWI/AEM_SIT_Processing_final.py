@@ -151,7 +151,11 @@ for dir in directories:
                 # Takes the time for each grid cell into account and calculate averages
                 avgSD, stdSD, lnSD, uncSD, lat, lon, time, avgSIT, stdSIT, lnSIT, uncSIT, avgFRB, stdFRB, lnFRB, FRB_Unc = G.GridData(
                     dtint, latitude, longitude, t, SIT=SIT, SIT_unc=SIT_unc)
-        
+
+                # set uncertainty flag to 3 for deformed ice
+                if avgSIT > 3.0:
+                    dataOut.unc_flag = 3
+                    
                 if len(time) > 0:
                     Functions.plot(latitude, longitude, dataOut.obsID, time,saveplot, HS='NH')
                     Functions.scatter(dataOut.obsID, t, SIT, time, avgSIT, 'SIT [m]', saveplot)
