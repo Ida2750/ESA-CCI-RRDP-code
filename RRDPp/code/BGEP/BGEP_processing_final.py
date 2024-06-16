@@ -13,7 +13,7 @@ measured during the Beaufort Gyre Exploration Project
 # -- File info -- #
 __author__ = 'Ida Olsen'
 __contributors__ = 'Henriette Skorup'
-__contact__ = ['s174020@student.dtu.dk']
+__contact__ = ['ilo@dmi.dk']
 __version__ = '0'
 __date__ = '2021-10-22'
 
@@ -31,11 +31,7 @@ import pandas as pd
 # -- Proprietary modules -- #
 from Warren import SnowDepth, SWE
 sys.path.append(os.path.dirname(os.getcwd()))
-# import EASEgrid_correct as EASEgrid
 import Functions
-
-
-
 
 dtint = 30  # days
 gridres = 25000  # m
@@ -49,7 +45,6 @@ ofile = os.path.dirname(os.path.dirname(os.getcwd())) +'/FINAL/BGEP/final/ESACCI
 files = glob.glob(save_path_data+'*')
 # for f in files:
 #     os.remove(f)
-
 
 lat=0
 lon=0
