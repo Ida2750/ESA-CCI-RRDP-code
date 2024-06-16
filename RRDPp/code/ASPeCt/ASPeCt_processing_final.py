@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""
 Uses EASE-grid to produce 50 km grid mean values. Mean values are obtained either by the distance limit or the time limit of 30 days.
 Uses input files of visual observations from ships (ice breakers) in the Southern Hemisphere
 includes Warren snow depths and densities
