@@ -6,7 +6,7 @@ Script to get data from ftp server
 # -- File info -- #
 __author__ = 'Ida Olsen'
 __contributors__ = ''
-__contact__ = ['iblol@dtu.dk']
+__contact__ = ['ilo@dmi.dk']
 __version__ = '0'
 __date__ = '2022-07-17'
 
