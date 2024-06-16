@@ -9,8 +9,8 @@ Choose whether data from the southern or the northern hemisphere is examined
 # -- File info -- #
 __author__ = 'Ida Olsen'
 __contributors__ = 'Henriette Skorup'
-__contact__ = ['s174020@student.dtu.dk']
-__version__ = '0'
+__contact__ = ['ilo@dmi.dk']
+__version__ = '1'
 __date__ = '2021-11-15'
 
 # -- Built-in modules -- #
