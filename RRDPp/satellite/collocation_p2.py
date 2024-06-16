@@ -3,7 +3,7 @@
 # -- File info -- #
 __author__ = 'Henriette Skorup'
 __contributors__ = 'Ida Olsen'
-__contact__ = ['s174020@student.dtu.dk']
+__contact__ = ['ilo@dmi.dk']
 __version__ = '0'
 __date__ = '2022-07-11'
 
