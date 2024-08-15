@@ -30,8 +30,8 @@ import cartopy.feature as cfeature
 import PyPDF2
 
 # -- Proprietary modules -- #
-from Warren import SnowDepth, SWE
 sys.path.append(os.path.dirname(os.getcwd()))
+from Warren import SnowDepth, SWE
 import EASEgrid_correct as EASEgrid
 import Functions
 
@@ -193,7 +193,7 @@ def Get_ppflag(self, SD, lnSD, lnSIT):
     pp_flag = np.zeros(len(lnSD))
     summ = np.cumsum(lnSD).astype(int)
     try:
-        pp_flag[0] = np.max(pp_non_nan[:summ[0]])
+        pp_flag[0] = np.nanmax(pp_non_nan[:summ[0]])
         # print(np.max(pp_non_nan[:summ[0]]))
     except: # no data in datapoint
         pp_flag[0] = np.nan
@@ -201,7 +201,7 @@ def Get_ppflag(self, SD, lnSD, lnSIT):
     for i in range(1, len(summ)):
         # print(summ[i])
         try:
-            pp_flag[i] = np.max(pp_non_nan[summ[i-1]:summ[i]])
+            pp_flag[i] = np.nanmax(pp_non_nan[summ[i-1]:summ[i]])
         except: # no data in datapoint
             pp_flag[i] = np.nan
     self.pp_flag = pp_flag
@@ -215,7 +215,8 @@ def Get_ppflag(self, SD, lnSD, lnSIT):
 save_path = os.path.dirname(os.path.dirname(os.getcwd())) + '/IMB/'
 save_path_data = os.path.dirname(os.path.dirname(
     os.getcwd())) + '/FINAL/IMB/final/'
-ofile = 'ESACCIplus-SEAICE-RRDP2+-SIT-IMB-V3.dat'
+if not os.path.exists(save_path_data):os.makedirs(save_path_data)
+ofile = 'ESACCIplus-SEAICE-RRDP2+-SIT-IMB.nc'
 gridres = 25000  # grid resolution
 dtint = 30  # days per mean
 ## saving locations
@@ -224,7 +225,7 @@ ofile = os.path.join(save_path_data, ofile)
 
 saveplot = os.path.join(os.path.dirname(
     os.path.dirname(os.getcwd())), 'Final/IMB/fig/')
-dataDir = os.path.dirname(os.path.dirname(os.getcwd())) + '/RawData/IMB_CRREL/'
+dataDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd())))) + '/RRDPp/RawData/IMB_CRREL/'
 
 count = 0
 for dirr in os.listdir(dataDir):
@@ -238,8 +239,7 @@ for dirr in os.listdir(dataDir):
                     print('---------------------------')
                     
                     #defines variables in output file
-                    count+=1
-                    dataOut = Functions.Final_Data(Type='SIT', count_head=count)
+                    dataOut = Functions.Final_Data(Type='SIT', count_head=count+1)
         
                     path2 = os.path.join(path, dirrr)
                     dataPath = path2 + '/' + os.listdir(path2)[0] + '/data/'
@@ -302,6 +302,7 @@ for dirr in os.listdir(dataDir):
                     # Interpolate positions from position file to the mass data
                     IMB1 = IMB(dirrr, Pos_data)
                     if Mass_data.size > 1:
+                        count+=1
                        
                         interpolate_positions(IMB1, Mass_data['Date'])
 
@@ -385,6 +386,7 @@ for dirr in os.listdir(dataDir):
                         dataOut.lon_final = lon
                         for ll in range(np.size(time,0)):
                             dataOut.date_final = np.append(dataOut.date_final,dt.datetime.strftime(time[ll],"%Y-%m-%dT%H:%M:%S"))
+                        dataOut.time = [np.datetime64(d) for d in dataOut.date_final]
                         dataOut.SD_final = avgSD
                         dataOut.SD_std = stdSD
                         dataOut.SD_ln = lnSD
@@ -395,13 +397,18 @@ for dirr in os.listdir(dataDir):
                         dataOut.SIT_unc = uncSIT
                         dataOut.air_temp_final = avgTair
                         dataOut.sur_temp_final = avgTsurf
+                        dataOut.unc_flag = [dataOut.unc_flag]*len(lat)
+                        dataOut.obsID = [dataOut.obsID]*len(lat)
                         
                         # fill empty arrays with NaN values
                         dataOut.Check_Output()
-                            
-                        # print data to output file
-                        dataOut.Print_to_output(ofile, primary='SIT')
-                    # except:
-                    #     print(f'directory files: {files}')
+                        
+                        print(count)
+                        if count>1:
+                            subset = dataOut.Create_NC_file(ofile, primary='SIT')
+                            df = Functions.Append_to_NC(df, subset)
+                        else:
+                            df = dataOut.Create_NC_file(ofile, primary='SIT', datasource=' Monitoring the mass balance, motion, and thickness of Arctic sea ice, http://imb-crrel-dartmouth.org', key_variables='Sea ice thickness and snow depth')
 
-Functions.sort_final_data(ofile, saveplot=saveplot)
+# Sort final data based on date
+Functions.save_NC_file(df, ofile, primary='SIT')

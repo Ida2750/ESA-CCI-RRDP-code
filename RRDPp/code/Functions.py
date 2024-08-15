@@ -2,9 +2,9 @@
 # -- File info -- #
 __author__ = 'Ida Olsen'
 __contributors__ = ''
-__contact__ = ['iblol@dtu.dk']
+__contact__ = ['ilo@dmi.dk']
 __version__ = '0'
-__date__ = '2023-06-27'
+__date__ = '2024-08-04'
 #%% Importing libaries and data
 import os
 
@@ -29,7 +29,7 @@ class Final_Data:
         self.obsID = []
         self.date_final = []
         self.lat_final = []  # decimal degrees
-        self.lon_final = []  # decimal degrees
+        self.lon_final = []  # decimal degreesprocees
         self.SD_final = []  # snow depth [m]
         self.SD_std = []  # standard deviation of snow depth
         self.SD_ln = []   # number of SD measurements in each gridcell
@@ -151,7 +151,7 @@ class Final_Data:
         output.close()
         
     
-    def Create_NC_file(self, primary='SIT', datasource=''):
+    def Create_NC_file(self, ofile, primary='SIT', datasource='', key_variables=''):
         """
         Create netCDF file with processed information from all files belonging to the datasource
         
@@ -174,13 +174,15 @@ class Final_Data:
                 # variables
                 data_vars = dict(
                     obsID = (['time'], self.obsID),
-                    date = (['time'], self.date_final),
+                    #date = (['time'], self.date_final),
                     lat = (['time'], self.lat_final),
                     lon = (['time'], self.lon_final),
+                    
                     SID = (['time'], self.SID_final),
                     SIDstd = (['time'], self.SID_std),
                     SIDln = (['time'], self.SID_ln),
                     SIDunc = (['time'], self.SID_unc),
+                    
                     wSD = (['time'], self.w_SD_final),
                     wrho = (['time'], self.w_density_final),
                     ppflag = (['time'], self.pp_flag),
@@ -192,21 +194,26 @@ class Final_Data:
                     #"lat": self.lat_final,
                     #"lon": self.lon_final,
                 },
+                # attributes
                 attrs = dict(title = 'Sea ice thickness reference measurements (ESA CCI SIT RRDP)',
                              institution = 'Technical University of Denmark (DTU)',
+                             Format = 'netcdf4',
+                             database = 'https://doi.org/10.11583/DTU.24787341',
+                             contact = 'Henriette Skourup hsk@space.dtu.dk',
+                             project = 'ESA CCI for Sea Ice (CCI-SI)',
+                             key_variables = key_variables,
                              grid = 'Equal-Area Scalable Earth Grid in version 2 (EASE2) from the National Snow and Ice Data Center (NSIDC)',
                              Datasource = datasource,
-                             source = os.path.basename(__file__),
-                             history = 'created: ' + dt.datetime.today().strftime('%Y-%m-%dT%H:%M')
+                             date_updated = dt.datetime.today().strftime('%Y-%m-%dT%H:%M')
                              )
-            )
+                )
         else:
             # Create dataset
             ds = xr.Dataset(
                 # variables
                 data_vars = dict(
                     obsID = (['time'], self.obsID),
-                    date = (['time'], self.date_final),
+                    #date = (['time'], self.date_final),
                     lat = (['time'], self.lat_final),
                     lon = (['time'], self.lon_final),
                     
@@ -225,6 +232,8 @@ class Final_Data:
                     FRBln = (['time'], self.FRB_ln),
                     FRBunc = (['time'], self.FRB_unc),
                     
+                    Tsur  = (['time'], self.sur_temp_final),
+                    Tair  = (['time'],  self.air_temp_final),
                     wSD = (['time'], self.w_SD_final),
                     wrho = (['time'], self.w_density_final),
                     ppflag = (['time'], self.pp_flag),
@@ -232,16 +241,20 @@ class Final_Data:
                     ),
                 # coordinates
                 coords ={
-                    "date": self.date_final,
+                    "time": self.time,
 
                 },
                 # attributes
                 attrs = dict(title = 'Sea ice thickness reference measurements (ESA CCI SIT RRDP)',
                              institution = 'Technical University of Denmark (DTU)',
+                             Format = 'netcdf4',
+                             database = 'https://doi.org/10.11583/DTU.24787341',
+                             contact = 'Henriette Skourup hsk@space.dtu.dk',
+                             project = 'ESA CCI for Sea Ice (CCI-SI)',
+                             key_variables = key_variables,
                              grid = 'Equal-Area Scalable Earth Grid in version 2 (EASE2) from the National Snow and Ice Data Center (NSIDC)',
                              Datasource = datasource,
-                             source = os.path.basename(__file__),
-                             history = 'created: ' + dt.datetime.today().strftime('%Y-%m-%dT%H:%M')
+                             date_updated = dt.datetime.today().strftime('%Y-%m-%dT%H:%M')
                              )
             )
         return ds
@@ -254,7 +267,7 @@ def save_NC_file(ds, ofile, primary):
     Parameters
     ----------
     ds : xarray dataset object
-        Dataset containing the data  to be saved
+        Dataset containing the data to be saved
     ofile : string
         Name of output file
     primary : string
@@ -277,20 +290,20 @@ def save_NC_file(ds, ofile, primary):
     
        
         ds['SIDstd'].attrs['standard_name'] = 'Sea Ice Draft standard deviation'
-        ds['SIDstd'].attrs['long_name'] = 'standard deviation of monthly mean sea ice draft'
+        ds['SIDstd'].attrs['long_name'] = 'Standard deviation of monthly mean sea ice draft'
         #ds['SIDstd'].attrs['_FillValue'] = '-999'
         #ds['SIDstd'].attrs['missing_value'] = '-999'
         ds['SIDstd'].attrs['Unit'] = 'meters (m)'
     
        
         ds['SIDln'].attrs['standard_name'] = 'Number of Sea Ice Draft OBS'
-        ds['SIDln'].attrs['long_name'] = 'Number of observations included in Sea Ice Draft estimate'
+        ds['SIDln'].attrs['long_name'] = 'Number of observations included in the monthly Sea Ice Draft estimate'
         #ds['SIDln'].attrs['_FillValue'] = '-999'
         #ds['SIDln'].attrs['missing_value'] = '-999'
     
        
         ds['SIDunc'].attrs['standard_name'] = 'Sea Ice Draft uncertainty'
-        ds['SIDunc'].attrs['long_name'] = 'Approximate uncertainty of Sea Ice Draft estimate'
+        ds['SIDunc'].attrs['long_name'] = 'Uncertainty of Sea Ice Draft estimate'
         #ds['SIDunc'].attrs['_FillValue'] = '-999'
         #ds['SIDunc'].attrs['missing_value'] = '-999'
         ds['SIDunc'].attrs['Unit'] = 'meters (m)'
@@ -307,20 +320,20 @@ def save_NC_file(ds, ofile, primary):
     
        
         ds['SITstd'].attrs['standard_name'] = 'Sea Ice Thickness standard deviation'
-        ds['SITstd'].attrs['long_name'] = 'standard deviation of monthly mean Sea Ice Thickness'
+        ds['SITstd'].attrs['long_name'] = 'Standard deviation of monthly mean Sea Ice Thickness'
         #ds['SITstd'].attrs['_FillValue'] = '-999'
         #ds['SITstd'].attrs['missing_value'] = '-999'
         ds['SITstd'].attrs['Unit'] = 'meters (m)'
     
        
         ds['SITln'].attrs['standard_name'] = 'Number of Sea Ice Thickness OBS'
-        ds['SITln'].attrs['long_name'] = 'Number of observations included in Sea Ice Thickness estimate'
+        ds['SITln'].attrs['long_name'] = 'Number of observations included in the monthly Sea Ice Thickness estimate'
         #ds['SITln'].attrs['_FillValue'] = '-999'
         #ds['SITln'].attrs['missing_value'] = '-999'
     
        
         ds['SITunc'].attrs['standard_name'] = 'Sea Ice Thickness uncertainty'
-        ds['SITunc'].attrs['long_name'] = 'Approximate uncertainty of Sea Ice Thickness estimate'
+        ds['SITunc'].attrs['long_name'] = 'Uncertainty of Sea Ice Thickness estimate'
         #ds['SITunc'].attrs['_FillValue'] = '-999'
         #ds['SITunc'].attrs['missing_value'] = '-999'
         ds['SITunc'].attrs['Unit'] = 'meters (m)'
@@ -334,18 +347,18 @@ def save_NC_file(ds, ofile, primary):
         ds['SD'].attrs['Unit'] = 'meters (m)'
     
         ds['SDstd'].attrs['standard_name'] = 'Snow Depth standard deviation'
-        ds['SDstd'].attrs['long_name'] = 'standard deviation of monthly mean Snow Depth'
+        ds['SDstd'].attrs['long_name'] = 'Standard deviation of monthly mean Snow Depth'
         #ds['SDstd'].attrs['_FillValue'] = '-999'
         #ds['SDstd'].attrs['missing_value'] = '-999'
         ds['SDstd'].attrs['Unit'] = 'meters (m)'
     
         ds['SDln'].attrs['standard_name'] = 'Number of Snow Depth OBS'
-        ds['SDln'].attrs['long_name'] = 'Number of observations included in Snow Depth estimate'
+        ds['SDln'].attrs['long_name'] = 'Number of observations included the monthly in Snow Depth estimate'
         #ds['SDln'].attrs['_FillValue'] = '-999'
         #ds['SDln'].attrs['missing_value'] = '-999'
     
         ds['SDunc'].attrs['standard_name'] = 'Snow Depth uncertainty'
-        ds['SDunc'].attrs['long_name'] = 'Approximate uncertainty of Snow Depth estimate'
+        ds['SDunc'].attrs['long_name'] = 'Uncertainty of Snow Depth estimate'
         #ds['SDunc'].attrs['_FillValue'] = '-999'
         #ds['SDunc'].attrs['missing_value'] = '-999'
         ds['SDunc'].attrs['Unit'] = 'meters (m)'
@@ -353,49 +366,61 @@ def save_NC_file(ds, ofile, primary):
         ## Freeboard variable attributes
         ds['FRB'].attrs['standard_name'] = 'Freeboard'
         ds['FRB'].attrs['long_name'] = 'Gridded, monthly mean Freeboard (FRB)'
-        ds['FRB'].attrs['Additonal_INFO'] =  ' Total FRB e.g. snow depth and sea ice thickness above local sea level'
+        ds['FRB'].attrs['Additonal_INFO'] =  ' Total FRB e.g., sea ice freeboard above local sea level including snow depth'
         #ds['FRB'].attrs['_FillValue'] = '-999'
         #ds['FRB'].attrs['missing_value'] = '-999'
         ds['FRB'].attrs['Unit'] = 'meters (m)'
     
         ds['FRBstd'].attrs['standard_name'] = 'Freeboard standard deviation'
-        ds['FRBstd'].attrs['long_name'] = 'standard deviation of monthly mean Freeboard'
+        ds['FRBstd'].attrs['long_name'] = 'Standard deviation of monthly mean Freeboard'
         #ds['FRBstd'].attrs['_FillValue'] = '-999'
         #ds['FRBstd'].attrs['missing_value'] = '-999'
         ds['FRBstd'].attrs['Unit'] = 'meters (m)'
     
         ds['FRBln'].attrs['standard_name'] = 'Number of Freeboard OBS'
-        ds['FRBln'].attrs['long_name'] = 'Number of observations included in Freeboard estimate'
+        ds['FRBln'].attrs['long_name'] = 'Number of observations included in the monthly Freeboard estimate'
         #ds['FRBln'].attrs['_FillValue'] = '-999'
         #ds['FRBln'].attrs['missing_value'] = '-999'
     
         ds['FRBunc'].attrs['standard_name'] = 'Freeboard uncertainty'
-        ds['FRBunc'].attrs['long_name'] = 'Approximate uncertainty of Freeboard estimate'
+        ds['FRBunc'].attrs['long_name'] = 'Uncertainty of Freeboard estimate'
         #ds['FRBunc'].attrs['_FillValue'] = '-999'
         #ds['FRBunc'].attrs['missing_value'] = '-999'
         ds['FRBunc'].attrs['Unit'] = 'meters (m)'
+
+        ds['Tsur'].attrs['standard_name'] = 'Snow/ice interface temperature'
+        ds['Tsur'].attrs['long_name'] = 'Temperature at depth 0 meters giving the snow/ice interface temperature '
+        ds['Tsur'].attrs['Unit'] = 'Degrees celcius'
+    
+        ds['Tair'].attrs['standard_name'] = 'Air temperature'
+        ds['Tair'].attrs['long_name'] = 'Temperature of the air at approximately 1.5 meters height for SB-AWI and 0.70 meters height for IMB-CRREL'
+        ds['Tair'].attrs['Unit'] = 'Degrees celcius'
         
 
+    ds['obsID'].attrs['standard_name'] = 'Observation Identifier'
 
-    ds['date'].attrs['standard_name'] = 'Date'
-    #ds['date'].attrs['long_name'] = 'Gridded, monthly mean sea ice draft'
+
+    ds['time'].attrs['standard_name'] = 'time'
+    ds['time'].attrs['long_name'] = 'reference time of data product in UTC'
+    #ds['time'].attrs['calender'] = 'proleptic gregorian'
     #ds['SID'].attrs['_FillValue'] = '-999'
     #ds['SID'].attrs['missing_value'] = '-999'
-    ds['date'].attrs['Unit'] = 'format: %Y%m%dT%H%M%s'
+    ds['time'].attrs['format'] = '%Y%m%dT%H%M%s'
+    #print(ds['time'])
         
    
     ds['lat'].attrs['standard_name'] = 'lat'
-    ds['lat'].attrs['long_name'] = 'lattitude'
+    ds['lat'].attrs['long_name'] = 'latitude'
     #ds['SID'].attrs['_FillValue'] = '-999'
     #ds['SID'].attrs['missing_value'] = '-999'
-    ds['lat'].attrs['Unit'] = 'degrees north'
+    ds['lat'].attrs['Unit'] = 'decimal degrees north'
 
    
     ds['lon'].attrs['standard_name'] = 'lon'
     ds['lon'].attrs['long_name'] = 'longitude'
     #ds['SID'].attrs['_FillValue'] = '-999'
     #ds['SID'].attrs['missing_value'] = '-999'
-    ds['lon'].attrs['Unit'] = 'degrees east'
+    ds['lon'].attrs['Unit'] = 'decimal degrees east'
 
    
     ds['wSD'].attrs['standard_name'] = 'Warren (1999) Snow Depth'
@@ -412,8 +437,8 @@ def save_NC_file(ds, ofile, primary):
     ds['wrho'].attrs['Unit'] = 'kilograms per meters cubed (kg/m3)'
     
    
-    ds['ppflag'].attrs['standard_name'] = 'Pre-proceessing flag'
-    ds['ppflag'].attrs['long_name'] = 'Pre-proceessing flag, indicating the amount of pre-processing done to data'
+    ds['ppflag'].attrs['standard_name'] = 'Pre-processing flag'
+    ds['ppflag'].attrs['long_name'] = 'Pre-processing flag, indicating the amount of pre-processing done to data'
     ds['ppflag'].attrs['Values'] = '0: No pre-processing, 1: Very minor pre-processing, 2: Minor pre-processing, 3: Major pre-processing'
     #ds['ppflag'].attrs['_FillValue'] = '-999'
     #ds['ppflag'].attrs['missing_value'] = '-999'
@@ -425,8 +450,9 @@ def save_NC_file(ds, ofile, primary):
     #ds['uncflag'].attrs['_FillValue'] = '-999'
     #ds['uncflag'].attrs['missing_value'] = '-999'
     
-   
+    print(ds)
     # Save NC file
+
     for var in ds:
         ds[var].encoding.update(dict(zlib=True, complevel=6))
     ds.to_netcdf(ofile, format="NETCDF4", mode="w")
@@ -435,6 +461,7 @@ def save_NC_file(ds, ofile, primary):
     print(f'File {ofile} created')
     
 def Append_to_NC(ds, subset):
+    
     """
     Concatenate xarray datasets along the time dimension
 
@@ -454,6 +481,349 @@ def Append_to_NC(ds, subset):
     
     ds = xr.concat([ds,subset], dim="time")   
     return ds
+
+def txt_to_netcdf(directory, ifile, primary, datasource, key_variables):
+    
+    """
+    Create netCDF file with processed information from all files belonging to the datasource
+    
+    Parameters
+    ----------
+    primary : string, optional
+        Primary variable identifier. The default is 'SIT'.
+    datasource : string, optional
+        Name of the datasource e.g. Norwegian Polar Institute SID Fram Srait. The default is ''.
+
+    Returns
+    -------
+    ds : xarray dataset.
+
+    """
+    
+    ObsData  = np.genfromtxt(os.path.join(directory, ifile),dtype=None,names=True, encoding=None)
+
+    if 'ERS1' in ifile or 'ERS2' in ifile:
+        # Create dataset
+        ds = xr.Dataset(
+            # variables
+            data_vars = dict(
+                date = (['time'], ObsData['date']),
+                lat = (['time'], ObsData['lat']),
+                lon = (['time'], ObsData['lon']),
+
+                satFRB = (['time'], ObsData['satFRB']),
+
+                ),
+            # coordinates
+            coords ={
+                "time": [np.datetime64(d) for d in ObsData['date']],
+            },
+            # attributes
+            attrs = dict(title = 'Sea ice thickness reference measurements (ESA CCI SIT RRDP)',
+                         institution = 'Technical University of Denmark (DTU)',
+                         Format = 'netcdf4',
+                         database = 'https://doi.org/10.11583/DTU.24787341',
+                         contact = 'Henriette Skourup hsk@space.dtu.dk',
+                         project = 'ESA CCI for Sea Ice (CCI-SI)',
+                         key_variables = key_variables,
+                         grid = 'Equal-Area Scalable Earth Grid in version 2 (EASE2) from the National Snow and Ice Data Center (NSIDC)',
+                         Datasource = datasource,
+                         date_updated = dt.datetime.today().strftime('%Y-%m-%dT%H:%M')
+                         )
+            )
+    
+    elif 'ENV' in ifile or 'CS2' in ifile:
+        if primary!='SID':
+            # Create dataset
+            ds = xr.Dataset(
+                # variables
+                data_vars = dict(
+                    date = (['time'], ObsData['date']),
+                    lat = (['time'], ObsData['lat']),
+                    lon = (['time'], ObsData['lon']),
+                    
+                    obsSD = (['time'], ObsData['obsSD']),
+                    obsSDstd = (['time'], ObsData['obsSDstd']),
+                    obsSDln = (['time'], ObsData['obsSDln']),
+                    obsSDunc = (['time'], ObsData['obsSDunc']),
+    
+                    obsSIT = (['time'], ObsData['obsSIT']),
+                    obsSITstd = (['time'], ObsData['obsSITstd']),
+                    obsSITln = (['time'], ObsData['obsSITln']),
+                    obsSITunc = (['time'], ObsData['obsSITunc']),
+    
+                    obsFRB = (['time'], ObsData['obsFRB']),
+                    obsFRBstd = (['time'], ObsData['obsFRBstd']),
+                    obsFRBln = (['time'], ObsData['obsFRBln']),
+                    obsFRBunc = (['time'], ObsData['obsFRBunc']),
+    
+                    satSD = (['time'], ObsData['satSD']),
+                    satSDstd = (['time'], ObsData['satSDstd']),
+                    satSDln = (['time'], ObsData['satSDln']),
+                    satSDunc = (['time'], ObsData['satSDunc']),
+    
+                    satSIT = (['time'], ObsData['satSIT']),
+                    satSITstd = (['time'], ObsData['satSITstd']),
+                    satSITln = (['time'], ObsData['satSITln']),
+                    satSITunc = (['time'], ObsData['satSITunc']),
+    
+                    satFRB = (['time'], ObsData['satFRB']),
+                    satFRBstd = (['time'], ObsData['satFRBstd']),
+                    satFRBln = (['time'], ObsData['satFRBln']),
+                    satFRBunc = (['time'], ObsData['satFRBunc']),
+    
+                    ),
+                # coordinates
+                coords ={
+                    "time": [np.datetime64(d) for d in ObsData['date']],
+                },
+                # attributes
+                attrs = dict(title = 'Sea ice thickness reference measurements (ESA CCI SIT RRDP)',
+                             institution = 'Technical University of Denmark (DTU)',
+                             Format = 'netcdf4',
+                             database = 'https://doi.org/10.11583/DTU.24787341',
+                             contact = 'Henriette Skourup hsk@space.dtu.dk',
+                             project = 'ESA CCI for Sea Ice (CCI-SI)',
+                             key_variables = key_variables,
+                             grid = 'Equal-Area Scalable Earth Grid in version 2 (EASE2) from the National Snow and Ice Data Center (NSIDC)',
+                             Datasource = datasource,
+                             date_updated = dt.datetime.today().strftime('%Y-%m-%dT%H:%M')
+                             )
+                )
+        else:
+            ds = xr.Dataset(
+                # variables
+                data_vars = dict(
+                    date = (['time'], ObsData['date']),
+                    lat = (['time'], ObsData['lat']),
+                    lon = (['time'], ObsData['lon']),
+                    
+                    obsSID = (['time'], ObsData['obsSID']),
+                    obsSIDstd = (['time'], ObsData['obsSIDstd']),
+                    obsSIDln = (['time'], ObsData['obsSIDln']),
+                    obsSIDunc = (['time'], ObsData['obsSIDunc']),
+    
+                    satSID = (['time'], ObsData['satSID']),
+                    satSIDstd = (['time'], ObsData['satSIDstd']),
+                    satSIDln = (['time'], ObsData['satSIDln']),
+                    satSIDunc = (['time'], ObsData['satSIDunc']),
+    
+                    ),
+                # coordinates
+                coords ={
+                    "time": [np.datetime64(d) for d in ObsData['date']],
+                },
+                # attributes
+                attrs = dict(title = 'Sea ice thickness reference measurements (ESA CCI SIT RRDP)',
+                             institution = 'Technical University of Denmark (DTU)',
+                             Format = 'netcdf4',
+                             database = 'https://doi.org/10.11583/DTU.24787341',
+                             contact = 'Henriette Skourup hsk@space.dtu.dk',
+                             project = 'ESA CCI for Sea Ice (CCI-SI)',
+                             key_variables = key_variables,
+                             grid = 'Equal-Area Scalable Earth Grid in version 2 (EASE2) from the National Snow and Ice Data Center (NSIDC)',
+                             Datasource = datasource,
+                             date_updated = dt.datetime.today().strftime('%Y-%m-%dT%H:%M')
+                             )
+                )
+    """
+    Allocates attributes of xarray dataset variables and saves dataset as netCDF file
+
+    """
+    if 'ERS1' in ifile or 'ERS2' in ifile:
+            ## Freeboard variable attributes
+            ds['satFRB'].attrs['standard_name'] = 'Satellite freeboard'
+            ds['satFRB'].attrs['long_name'] = 'Freeboard from colocated satellite observations'
+            ds['satFRB'].attrs['unit'] = 'meters (m)'
+      
+    
+    else:
+        if primary=='SID':
+            
+            ## Sea Ice Draft variable attributes (Reference)
+            ds['obsSID'].attrs['standard_name'] = 'Reference sea ice draft'
+            ds['obsSID'].attrs['long_name'] = 'Sea ice draft from colocated reference observations'
+            ds['obsSID'].attrs['unit'] = 'meters (m)'
+            
+            ds['obsSIDstd'].attrs['standard_name'] = 'Reference sea ice draft standard deviation'
+            ds['obsSIDstd'].attrs['long_name'] = 'Standard deviation of colocated reference sea ice draft observations'
+            ds['obsSIDstd'].attrs['unit'] = 'meters (m)'
+            
+            ds['obsSIDln'].attrs['standard_name'] = 'Number of sea ice draft reference observations'
+            ds['obsSIDln'].attrs['long_name'] = 'Number of reference observations included in the monthly sea ice draft estimate'
+            
+            ds['obsSIDunc'].attrs['standard_name'] = 'Reference sea ice draft uncertainty'
+            ds['obsSIDunc'].attrs['long_name'] = 'Uncertainty in reference sea ice draft observations'
+            ds['obsSIDunc'].attrs['unit'] = 'meters (m)'
+            
+            ## Sea Ice Draft variable attributes (Satellite)
+            ds['satSID'].attrs['standard_name'] = 'Satellite sea ice draft'
+            ds['satSID'].attrs['long_name'] = 'Sea ice draft from colocated satellite observations'
+            ds['satSID'].attrs['unit'] = 'meters (m)'
+            
+            ds['satSIDstd'].attrs['standard_name'] = 'Satellite sea ice draft standard deviation'
+            ds['satSIDstd'].attrs['long_name'] = 'Standard deviation of colocated satellite sea ice draft observations'
+            ds['satSIDstd'].attrs['unit'] = 'meters (m)'
+            
+            ds['satSIDln'].attrs['standard_name'] = 'Number of sea ice draft satellite observations'
+            ds['satSIDln'].attrs['long_name'] = 'Number of satellite observations included in the monthly sea ice draft estimate'
+            
+            ds['satSIDunc'].attrs['standard_name'] = 'Satellite sea ice draft uncertainty'
+            ds['satSIDunc'].attrs['long_name'] = 'Uncertainty in satellite sea ice draft observations'
+            ds['satSIDunc'].attrs['unit'] = 'meters (m)'
+                    
+        else:
+            ## Sea Ice Thickness variable attributes
+            ds['obsSIT'].attrs['standard_name'] = 'Reference sea ice thickness'
+            ds['obsSIT'].attrs['long_name'] = 'Sea ice thickness from colocated reference observations'
+            ds['obsSIT'].attrs['unit'] = 'meters (m)'
+            
+            ds['obsSITstd'].attrs['standard_name'] = 'Reference sea ice thickness standard deviation'
+            ds['obsSITstd'].attrs['long_name'] = 'Standard deviation of colocated reference sea ice thickness observations'
+            ds['obsSITstd'].attrs['unit'] = 'meters (m)'
+            
+            ds['obsSITln'].attrs['standard_name'] = 'Number of sea ice thickness reference observations'
+            ds['obsSITln'].attrs['long_name'] = 'Number of reference observations included in the monthly sea ice thickness estimate'
+            
+            ds['obsSITunc'].attrs['standard_name'] = 'Reference sea ice thickness uncertainty'
+            ds['obsSITunc'].attrs['long_name'] = 'Uncertainty in reference sea ice thickness observations'
+            ds['obsSITunc'].attrs['unit'] = 'meters (m)'
+            
+            ## Snow Depth variable attributes
+            ds['obsSD'].attrs['standard_name'] = 'Reference snow depth'
+            ds['obsSD'].attrs['long_name'] = 'Snow depth from colocated reference observations'
+            ds['obsSD'].attrs['unit'] = 'meters (m)'
+            
+            ds['obsSDstd'].attrs['standard_name'] = 'Reference snow depth standard deviation'
+            ds['obsSDstd'].attrs['long_name'] = 'Standard deviation of colocated reference snow depth observations'
+            ds['obsSDstd'].attrs['unit'] = 'meters (m)'
+            
+            ds['obsSDln'].attrs['standard_name'] = 'Number of snow depth reference observations'
+            ds['obsSDln'].attrs['long_name'] = 'Number of reference observations included in the monthly snow depth estimate'
+            
+            ds['obsSDunc'].attrs['standard_name'] = 'Reference snow depth uncertainty'
+            ds['obsSDunc'].attrs['long_name'] = 'Uncertainty in reference snow depth observations'
+            ds['obsSDunc'].attrs['unit'] = 'meters (m)'
+            
+            ## Freeboard variable attributes
+            ds['obsFRB'].attrs['standard_name'] = 'Reference freeboard'
+            ds['obsFRB'].attrs['long_name'] = 'Freeboard from colocated reference observations'
+            ds['obsFRB'].attrs['unit'] = 'meters (m)'
+            
+            ds['obsFRBstd'].attrs['standard_name'] = 'Reference freeboard standard deviation'
+            ds['obsFRBstd'].attrs['long_name'] = 'Standard deviation of colocated reference freeboard observations'
+            ds['obsFRBstd'].attrs['unit'] = 'meters (m)'
+            
+            ds['obsFRBln'].attrs['standard_name'] = 'Number of freeboard reference observations'
+            ds['obsFRBln'].attrs['long_name'] = 'Number of reference observations included in the monthly freeboard estimate'
+            
+            ds['obsFRBunc'].attrs['standard_name'] = 'Reference freeboard uncertainty'
+            ds['obsFRBunc'].attrs['long_name'] = 'Uncertainty in reference freeboard observations'
+            ds['obsFRBunc'].attrs['unit'] = 'meters (m)'
+            
+            ## Sea Ice Thickness variable attributes
+            ds['satSIT'].attrs['standard_name'] = 'Satellite sea ice thickness'
+            ds['satSIT'].attrs['long_name'] = 'Sea ice thickness from colocated satellite observations'
+            ds['satSIT'].attrs['unit'] = 'meters (m)'
+            
+            ds['satSITstd'].attrs['standard_name'] = 'Satellite sea ice thickness standard deviation'
+            ds['satSITstd'].attrs['long_name'] = 'Standard deviation of colocated satellite sea ice thickness observations'
+            ds['satSITstd'].attrs['unit'] = 'meters (m)'
+            
+            ds['satSITln'].attrs['standard_name'] = 'Number of sea ice thickness satellite observations'
+            ds['satSITln'].attrs['long_name'] = 'Number of satellite observations included in the monthly sea ice thickness estimate'
+            
+            ds['satSITunc'].attrs['standard_name'] = 'Satellite sea ice thickness uncertainty'
+            ds['satSITunc'].attrs['long_name'] = 'Uncertainty in satellite sea ice thickness observations'
+            ds['satSITunc'].attrs['unit'] = 'meters (m)'
+            
+            ## Snow Depth variable attributes
+            ds['satSD'].attrs['standard_name'] = 'Satellite snow depth'
+            ds['satSD'].attrs['long_name'] = 'Snow depth from colocated satellite observations'
+            ds['satSD'].attrs['unit'] = 'meters (m)'
+            
+            ds['satSDstd'].attrs['standard_name'] = 'Satellite snow depth standard deviation'
+            ds['satSDstd'].attrs['long_name'] = 'Standard deviation of colocated satellite snow depth observations'
+            ds['satSDstd'].attrs['unit'] = 'meters (m)'
+            
+            ds['satSDln'].attrs['standard_name'] = 'Number of snow depth satellite observations'
+            ds['satSDln'].attrs['long_name'] = 'Number of satellite observations included in the monthly snow depth estimate'
+            
+            ds['satSDunc'].attrs['standard_name'] = 'Satellite snow depth uncertainty'
+            ds['satSDunc'].attrs['long_name'] = 'Uncertainty in satellite snow depth observations'
+            ds['satSDunc'].attrs['unit'] = 'meters (m)'
+            
+            ## Freeboard variable attributes
+            ds['satFRB'].attrs['standard_name'] = 'Satellite freeboard'
+            ds['satFRB'].attrs['long_name'] = 'Freeboard from colocated satellite observations'
+            ds['satFRB'].attrs['unit'] = 'meters (m)'
+            
+            ds['satFRBstd'].attrs['standard_name'] = 'Satellite freeboard standard deviation'
+            ds['satFRBstd'].attrs['long_name'] = 'Standard deviation of colocated satellite freeboard observations'
+            ds['satFRBstd'].attrs['unit'] = 'meters (m)'
+            
+            ds['satFRBln'].attrs['standard_name'] = 'Number of freeboard satellite observations'
+            ds['satFRBln'].attrs['long_name'] = 'Number of satellite observations included in the monthly freeboard estimate'
+            
+            ds['satFRBunc'].attrs['standard_name'] = 'Satellite freeboard uncertainty'
+            ds['satFRBunc'].attrs['long_name'] = 'Uncertainty in satellite freeboard observations'
+            ds['satFRBunc'].attrs['unit'] = 'meters (m)'
+
+    ds['time'].attrs['standard_name'] = 'time'
+    ds['time'].attrs['long_name'] = 'reference time of data product in UTC'
+    ds['time'].attrs['format'] = '%Y%m%dT%H%M%s'
+        
+   
+    ds['lat'].attrs['standard_name'] = 'lat'
+    ds['lat'].attrs['long_name'] = 'latitude'
+    ds['lat'].attrs['Unit'] = 'decimal degrees north'
+
+   
+    ds['lon'].attrs['standard_name'] = 'lon'
+    ds['lon'].attrs['long_name'] = 'longitude'
+    ds['lon'].attrs['Unit'] = 'decimal degrees east'
+
+    
+    #print(ds)
+    # Save NC file
+    
+    ofile = ifile.split('.')[0] + '.nc'
+    #print(ofile)
+    
+    for var in ds:
+        ds[var].encoding.update(dict(zlib=True, complevel=6))
+    ds.to_netcdf(ofile, format="NETCDF4", mode="w")
+    ds.close()
+    
+    print(ds)
+    
+    print(f'File {ofile} created')
+
+
+def get_count(file):
+    data = xr.open_dataset(file)
+    #data = np.genfromtxt(file, names=True, encoding=None)
+    filename = file.split('/')[-1]
+    if 'SID' in filename:
+        primary = 'SID'
+    else:
+        primary = 'SIT'
+    
+    if primary=='SID':
+        SID = data['SID'].squeeze().to_numpy()
+        print(len(SID[np.isfinite(SID)]))
+    else:
+        SD = data['SD'].squeeze().to_numpy()
+        SIT = data['SIT'].squeeze().to_numpy()
+        FRB = data['FRB'].squeeze().to_numpy()
+        Tair = data['Tair'].squeeze().to_numpy()
+        Tsur = data['Tsur'].squeeze().to_numpy()
+        print(len(SD[np.isfinite(SD)]))
+        print(len(SIT[np.isfinite(SIT)]))
+        print(len(FRB[np.isfinite(FRB)]))
+        print(f'air temp: {len(Tair[np.isfinite(Tair)])}')
+        print(f'sur temp: {len(Tsur[np.isfinite(Tsur)])}')
+        
 # =============================================================================
 # # %% Plotting functions
 # =============================================================================
@@ -492,8 +862,9 @@ def plot(latitude, longitude, obsID, date, saveplot, HS='NH', obstype=''):
     except:
         plt.title(obstype + str(date[0][:10]) + ' - ' + str(date[-1][:10]))
     plt.scatter(longitude, latitude,
-                s=10, c='k', alpha=0.9,
+                s=1, c='k', alpha=0.9,
                 transform=ccrs.PlateCarree(),)
+    if not os.path.exists(saveplot):os.makedirs(saveplot)
     plt.savefig(saveplot + '/' + obsID + '.png')
     plt.show()
 
@@ -526,25 +897,25 @@ def scatter(obsID, date_pre, var_pre, date_post, var_post, varname, saveplot):
     None.
 
     """
-
-    plt.figure(figsize=(6, 6))
-    plt.scatter(date_pre, var_pre, s=10, label='Original data')
-    plt.scatter(date_post, var_post, s=10, label='Processed data')
-    plt.xlabel('Time')
-    plt.ylabel(varname)
-    if 'SD' in varname:
-        plt.ylim(-0.1, 2)
-    elif 'SID' in varname:
-        plt.ylim(-1, 50)
-    else:
-        plt.ylim(-1, 10)
-    plt.legend()
-    plt.grid()
-    plt.xticks(rotation=45)
-    plt.title(obsID)
-    plt.savefig(saveplot + '/' + obsID + varname +
-                '_scatter.png', bbox_inches='tight')
-    plt.show()
+    if any(np.isfinite(var_pre)):
+        plt.figure(figsize=(6, 6))
+        plt.scatter(date_pre, var_pre, s=10, label='Original data')
+        plt.scatter(date_post, var_post, s=10, label='Processed data')
+        plt.xlabel('Time')
+        plt.ylabel(varname)
+        if 'SD' in varname:
+            plt.ylim(-0.1, 2)
+        elif 'SID' in varname:
+            plt.ylim(-1, 50)
+        else:
+            plt.ylim(-1, 10)
+        plt.legend()
+        plt.grid()
+        plt.xticks(rotation=45)
+        plt.title(obsID)
+        plt.savefig(saveplot + '/' + obsID + varname +
+                    '_scatter.png', bbox_inches='tight')
+        plt.show()
 
     return None
 
@@ -606,7 +977,7 @@ def compute_SD_SIT(conc_tot, cc_P, SIT_P, SD_P, cc_S, SIT_S, SD_S, cc_T, SIT_T, 
             SD_eff_S = np.multiply(np.divide(cc_S[kk], conc_tot[kk]), SD_S[kk])
             SD_eff_T = np.multiply(np.divide(cc_T[kk], conc_tot[kk]), SD_T[kk])
 
-            print(SIT_P)
+            #print(SIT_P)
             # Append non nan value if:
             # 1. The total concentration is the same as the sum of the partial concentrations
             # 2. As a minimum one of the SIT/SD_eff are non nan

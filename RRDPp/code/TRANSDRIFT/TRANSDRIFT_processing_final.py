@@ -36,10 +36,11 @@ save_path_data = os.path.dirname(os.path.dirname(
 saveplot = os.path.dirname(os.path.dirname(
     os.getcwd())) + '/FINAL/TRANSDRIFT/fig/'
 ofile = os.path.dirname(os.path.dirname(os.getcwd(
-))) + '/FINAL/TRANSDRIFT/final/ESACCIplus-SEAICE-RRDP2+-SID-TRANSDRIFT.dat'
-directory = os.path.dirname(os.path.dirname(
-    os.getcwd())) + '/RawData/TRANSDRIFT/datasets'
-
+))) + '/FINAL/TRANSDRIFT/final/ESACCIplus-SEAICE-RRDP2+-SID-TRANSDRIFT.nc'
+directory = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
+    os.getcwd())))) + '/RRDPp/RawData/TRANSDRIFT/datasets'
+if not os.path.exists(save_path_data):os.makedirs(save_path_data)
+if not os.path.exists(saveplot):os.makedirs(saveplot)
 
 count = 0 # count for header
 for filename in os.listdir(directory):
@@ -148,13 +149,20 @@ for filename in os.listdir(directory):
                 dataOut.w_density_final = np.append(
                     dataOut.w_density_final, w_density)
     
+            dataOut.time = [np.datetime64(d) for d in dataOut.date_final]
+            dataOut.pp_flag = [dataOut.pp_flag]*len(dataOut.SID_final)
+            dataOut.unc_flag = [dataOut.unc_flag]*len(dataOut.SID_final)
+            dataOut.obsID = [dataOut.obsID]*len(dataOut.SID_final)
+            
             # fill empty arrays with NaN values
             dataOut.Check_Output()
     
-            # print data to output file
-            dataOut.Print_to_output(ofile, primary='SID')
-       # except:
-       #     print(filename)
+            if count>1:
+                subset = dataOut.Create_NC_file(ofile, primary='SID')
+                df = Functions.Append_to_NC(df, subset)
+            else:
+                df = dataOut.Create_NC_file(ofile, primary='SID', datasource='Daily mean sea ice draft from moored Upward-Looking Sonars in the Laptev Sea between 2013 and 2015: https://doi.pangaea.de/10.1594/PANGAEA.899275 + Daily mean sea ice draft from moored upward-looking Acoustic Doppler Current Profilers (ADCPs) in the Laptev Sea from 2003 to 2016: https://doi.pangaea.de/10.1594/PANGAEA.912927', key_variables='Sea Ice Draft')
+                
 
 # Sort final data based on date
-Functions.sort_final_data(ofile, saveplot=saveplot, HS='NH', primary='SID')
+Functions.save_NC_file(df, ofile, primary='SID')

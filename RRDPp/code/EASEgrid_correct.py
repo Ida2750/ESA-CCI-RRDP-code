@@ -38,12 +38,12 @@ class Gridded:
     #    import pyproj
     #    import Warren
 
-        # Default for 100 km EASE grid!???
-        self.max_x = 5400000.0
-        self.min_x = -5400000.0
+        # Default for 25 km EASE grid
+        self.max_x = 9000000.0	#5400000.0
+        self.min_x = -9000000.0	#-5400000.0
 
-        self.max_y = 5400000.0
-        self.min_y = -5400000.0
+        self.max_y = 9000000.0	#5400000.0
+        self.min_y = -9000000.0	#-5400000.0
 
 
         self.resolution = resolution
@@ -182,7 +182,7 @@ class Gridded:
         # Adds observations with same indicies to a list of list of lists
         # Removes data if time is not changing over successive measurements 
         count=0
-        last = dt.datetime(2000,1,1,0,0,0)
+        last = dt.datetime(1950,1,1,0,0,0)
         dt0 = timedelta(seconds=0)
         for i in range(len(t)):
             dt = t[i]-last

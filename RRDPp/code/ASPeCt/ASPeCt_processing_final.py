@@ -10,7 +10,7 @@ __author__ = 'Ida Olsen'
 __contributors__ = 'Henriette Skorup'
 __contact__ = ['ilo@dmi.dk']
 __version__ = '0'
-__date__ = '2023-06-12'
+__date__ = '2024-08-04'
 
 # -- Build-in modules -- #
 import os.path
@@ -54,7 +54,7 @@ def Make_Gridded_Product(SD, SIT):
     
     SD_unc, SIT_unc = Functions.Get_unc(SD, SIT)
     # Takes the time for each grid cell into account and calculate averages
-    avgSD, stdSD, lnSD, uncSD, lat, lon, time, avgSIT, stdSIT, lnSIT, uncSIT, avgFRB, stdFRB, lnFRB, FRB_Unc = G.GridData(dtint, latitude, longitude, dates, SD=SD, SD_unc=SD_unc, SIT=SIT, SIT_unc=SIT_unc)
+    avgSD, stdSD, lnSD, uncSD, lat, lon, time, avgSIT, stdSIT, lnSIT, uncSIT, avgFRB, stdFRB, lnFRB, FRB_Unc, var1, var2 = G.GridData(dtint, latitude, longitude, dates, SD=SD, SD_unc=SD_unc, SIT=SIT, SIT_unc=SIT_unc)
     
     if len(time)>0:
         try:
@@ -67,10 +67,15 @@ def Make_Gridded_Product(SD, SIT):
             Functions.scatter('ASPeCt', dates, SIT, time, avgSIT, 'SIT [m]',saveplot)
     
     #Change names to correct format names
+    dataOut.obsID = [dataOut.obsID]*len(lat)
+    ## pp flag + unc flag
+    dataOut.pp_flag = [dataOut.pp_flag]*len(lat)
+    dataOut.unc_flag = [dataOut.unc_flag]*len(lat)
     dataOut.lat_final = lat
     dataOut.lon_final = lon
     for ll in range(np.size(time,0)):
         dataOut.date_final = np.append(dataOut.date_final,dt.datetime.strftime(time[ll],"%Y-%m-%dT%H:%M:%S"))
+    dataOut.time = [np.datetime64(d) for d in dataOut.date_final]
     dataOut.SD_final = avgSD
     dataOut.SD_std = stdSD
     dataOut.SD_ln = lnSD
@@ -90,16 +95,18 @@ gridres = 50000  # grid resolution
 dtint = 30  # days per mean
 ifile = 'ASPECT_Allvoys_obs_mindist0.txt'
 ifile2 = 'ASPeCt-ASSIST__standardized__ShipBasedSeaIceObservations__SH__UHAM-ICDC_v2.0_fv0.01.txt'
-parrent = os.path.dirname(os.path.dirname(os.getcwd()))
-file = open(parrent + '/RawData/Antarctic/ASPeCt/Original_data/'+ifile, 'r')
-ofile = parrent + '/FINAL/Antarctic/ASPeCt/final/ESACCIplus-SEAICE-RRDP2+-SIT-ASPeCt-new2.dat'
-saveplot =  parrent + '/FINAL/Antarctic/ASPeCt/fig/'
+
+file = open(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd())))) + '/RRDPp/RawData/Antarctic/ASPeCt/Original_data/'+ifile, 'r')
+save_path_data = os.path.dirname(os.path.dirname(os.getcwd())) + '/FINAL/Antarctic/ASPeCt/final/'
+if not os.path.exists(save_path_data):os.makedirs(save_path_data)
+ofile = save_path_data + 'ESACCIplus-SEAICE-RRDP2+-SIT-ASPeCt-new2.nc'
+saveplot =  os.path.dirname(os.path.dirname(os.getcwd())) + '/FINAL/Antarctic/ASPeCt/fig/'
 
 names =['Year','Mon','DoY','Lon','Lat','Tcc', 'ccP','ICP','ZiP','ZrP','A%rP','aHtP','SCP','SzP','ccS','ICS','ZiS','ZrS','A%rS','aHtS','SCS','SzS','ccT','ICT','ZiT','ZrT','A%rT','aHtT','SCT','SzT']
 dtype = [float for el in names]
 #     if i<2:
 obsID =  Get_obsID(file)
-file = open(parrent + '/RawData/Antarctic/ASPeCt/Original_data/'+ifile, 'r')
+file = open(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd())))) + '/RRDPp/RawData/Antarctic/ASPeCt/Original_data/'+ifile, 'r')
 data = np.genfromtxt(file, skip_header=22, names=names, comments='%', encoding=None, dtype=dtype)
 
 # seperate observations
@@ -116,7 +123,7 @@ for in0, in1 in zip(index[:-1], index[1:]):
     
     datasubset = data[in0:in1]
     dataOut.obsID = obsID[in0]
-    print(dataOut.obsID)
+    #print(dataOut.obsID)
     
     dates = [dt.datetime(int(y), 1, 1) + dt.timedelta(days=d) for y,m,d in zip(datasubset['Year'], datasubset['Mon'], datasubset['DoY'])]
 
@@ -151,17 +158,27 @@ for in0, in1 in zip(index[:-1], index[1:]):
     SD, SIT = Functions.compute_SD_SIT(ice_conc_tot, cc_P, SIT_P, SD_P, cc_S, SIT_S, SD_S, cc_T,SIT_T, SD_T)
     Make_Gridded_Product(SD, SIT)
     # print data to output file
-    dataOut.Print_to_output(ofile, primary='SIT')
-#%%
-## Read information from newer ASPeCt data file
-file = open(parrent + '/RawData/Antarctic/ASPeCt/Original_data/'+ifile2, 'r')
+    
+    # fill empty arrays with NaN values
+    dataOut.Check_Output()
+        
+    if count>1:
+        subset = dataOut.Create_NC_file(ofile,primary='SIT')
+        df = Functions.Append_to_NC(df, subset)
+    else:
+        df = dataOut.Create_NC_file(ofile,primary='SIT', datasource='ASPeCt, 1980-2005: Thickness distribution of Antarctic sea ice doi:10.1029/2007JC004254, 2005-2019: ESA-CCI_Phase2_Standardized_Manual_Visual_Ship-Based_SeaIceObservations_v02, doi:10.26050/WDCC/ESACCIPSMVSBSIOV2', key_variables='Sea Ice thickness and snow depth')
 
-data = np.genfromtxt(file, names=True, encoding=None, delimiter=',')
+#%%
+## Read information from newer ASPeCt data file (use data from september 2005, when Worby data ends)
+file = open(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd())))) +  '/RRDPp/RawData/Antarctic/ASPeCt/Original_data/'+ifile2, 'r')
+
+#data = np.genfromtxt(file, names=True, encoding=None, delimiter=',')
 dtypes = [object if i<1 or i==3 else float for i in range(len(data.dtype.names))]
-file = open(parrent + '/RawData/Antarctic/ASPeCt/Original_data/'+ifile2, 'r')
+#file = open(parrent + '/RawData/Antarctic/ASPeCt/Original_data/'+ifile2, 'r')
 data = np.genfromtxt(file, names=True, encoding=None, delimiter=',', dtype=dtypes)
 
 dataOut = Functions.Final_Data(Type='SIT', count_head=-1)
+print(data['identifier'])
 dataOut.obsID = [idd.decode('utf8') for idd in data['identifier']]
 
 # Load data
@@ -202,10 +219,16 @@ SIT_T[SIT_T==-9.9] = np.nan
 
 SD, SIT = Functions.compute_SD_SIT(ice_conc_tot, cc_P, SIT_P, SD_P, cc_S, SIT_S, SD_S, cc_T,SIT_T, SD_T)
 Make_Gridded_Product(SD, SIT)
-obsID = np.array(dataOut.obsID)[~np.isnan(SIT)]
-index = np.cumsum(dataOut.SIT_ln).astype(int) -1
-dataOut.obsID = [idd[:20] for idd in obsID[index]]
-# print data to output file
-dataOut.Print_to_output(ofile, primary='SIT')
 
-Functions.sort_final_data(ofile, saveplot=saveplot, HS='SH', primary='SIT')
+#obsID = np.array(dataOut.obsID)[~np.isnan(SIT)]
+index = np.cumsum(dataOut.SIT_ln).astype(int) -1
+dataOut.obsID = [idd[:20] for idd in np.array(obsID)[index]]
+
+# print data to output file
+subset = dataOut.Create_NC_file(ofile,primary='SIT')
+df = Functions.Append_to_NC(df, subset)
+
+#Functions.sort_final_data(ofile, saveplot=saveplot, HS='SH', primary='SIT')
+
+# Save data to NetCDF
+Functions.save_NC_file(df, ofile, primary='SIT')

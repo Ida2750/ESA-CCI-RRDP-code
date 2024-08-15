@@ -12,7 +12,7 @@ __author__ = 'Ida Olsen'
 __contributors__ = 'Henriette Skorup'
 __contact__ = ['ilo@dmi.dk']
 __version__ = '0'
-__date__ = '2021-09-24'
+__date__ = '2024-08-12'
 
 
 # -- Built-in modules -- #
@@ -28,6 +28,7 @@ import math
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 import cartopy.feature as cfeature
+
 # -- Proprietary modules -- #
 sys.path.append(os.path.dirname(os.getcwd()))
 import EASEgrid_correct as EASEgrid
@@ -328,13 +329,15 @@ gridres = 25000 # resolution of gridded product in meters
 campaign = 'SCICEX'
 save_directory=save_directory = os.path.dirname(os.path.dirname(os.getcwd())) + '/Final/'
 save_path_data= save_directory + 'SCICEX/final/'
-ofile='ESACCIplus-SEAICE-RRDP2+-SID-SCICEX-V3.dat'
+if not os.path.exists(save_path_data):os.makedirs(save_path_data)
+ofile='ESACCIplus-SEAICE-RRDP2+-SID-SCICEX.nc'
 ofile =os.path.join(save_path_data,ofile)
 output=open(ofile,'w')
 # Host directory of the data
-directory = os.path.dirname(os.path.dirname(os.getcwd())) + '/RawData/SCICEX/data'
+directory = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd())))) + '/RRDPp/RawData/SCICEX/data'
 saveplot = os.path.join(os.path.dirname(
     os.path.dirname(os.getcwd())), 'Final/SCICEX/fig/')
+if not os.path.exists(saveplot):os.makedirs(saveplot)
 
 # loop throguh directories
 
@@ -364,7 +367,7 @@ for dirr in directories:
         s = SCICEX_cruise('SCICEX-' + name)
         if os.path.isdir(dir_data): # check if file is a directory
             # Get files from data folder
-            for ifile, count in zip(os.listdir(dir_data), range(len(os.listdir(dir_data)))):
+            for ifile, cc in zip(os.listdir(dir_data), range(len(os.listdir(dir_data)))):
                 # check if it is a data file
                 if 'drft' in ifile and not os.path.isdir(ifile):
                     
@@ -571,8 +574,10 @@ for dirr in directories:
         
             
             # Takes the time for each grid cell into account and calculate averages
-            avgSID, stdSID, lnSID, uncSID, lat, lon, time, avgSIT, stdSIT, lnSIT, uncSIT, avgFRB, stdFRB, lnFRB, FRB_Unc = G.GridData(
+            (avgSID, stdSID, lnSID, uncSID, lat, lon, time, avgSIT, stdSIT, lnSIT, uncSIT, avgFRB,
+                 stdFRB, lnFRB, uncFRB, var1, var2) = G.GridData(
                 dtint, latitude, longitude, t, SD=SID, SD_unc=SID_Unc)
+
             
             if len(time) > 0:
                 dataOut.obsID = s.obsID
@@ -592,22 +597,32 @@ for dirr in directories:
 
             #Change names to correct format names
             dataOut.lat_final = lat
+            print(lat)
             dataOut.lon_final = lon
             for ll in range(np.size(time,0)):
                 dataOut.date_final = np.append(dataOut.date_final,dt.datetime.strftime(time[ll],"%Y-%m-%dT%H:%M:%S"))
+            dataOut.time = [np.datetime64(d) for d in dataOut.date_final]
             dataOut.SID_final = avgSID
             dataOut.SID_std = stdSID
             dataOut.SID_ln = lnSID
             dataOut.SID_unc = uncSID
-   
+            dataOut.unc_flag = [dataOut.unc_flag]*len(lat)
+            dataOut.pp_flag = [dataOut.pp_flag]*len(lat)
+            
+            dataOut.obsID = [dataOut.obsID]*len(dataOut.SID_final)
+                        
             
             # fill empty arrays with NaN values
             dataOut.Check_Output()
                 
-            # print data to output file
-            dataOut.Print_to_output(ofile, primary='SID')
+                            
+            if count>1:
+                subset = dataOut.Create_NC_file(ofile, primary='SID')
+                df = Functions.Append_to_NC(df, subset)
+            else:
+                df = dataOut.Create_NC_file(ofile, primary='SID', datasource='SCICEX: Submarine Arctic Science Program, Version 1: https://doi.org/10.7265/N5930R3Z + Submarine Upward Looking Sonar Ice Draft Profile Data and Statistics, Version 1: https://doi.org/10.7265/N54Q7RW', key_variables='Sea Ice Draft')
 
 # Sort final data based on date
-Functions.sort_final_data(ofile, saveplot=saveplot, HS='NH', primary='SID')
+Functions.save_NC_file(df, ofile, primary='SID')
 
 
