@@ -9,9 +9,9 @@ includes Warren snow depths and densities
 # -- File info -- #
 __author__ = 'Ida Olsen'
 __contributors__ = 'Henriette Skorup'
-__contact__ = ['s174020@student.dtu.dk']
+__contact__ = ['ilo@dmi.dk']
 __version__ = '0'
-__date__ = '2022-01-25'
+__date__ = '2024-08-04'
 
 # -- Built-in modules -- #
 import os.path
@@ -23,25 +23,26 @@ import re
 import numpy as np
 
 # -- Proprietary modules -- #
+sys.path.append(os.path.dirname(os.getcwd()))
 from Get_Dates_From_Header import Get_date as gd
 from Get_New_AEM_Data import Get_New_AEM_data as gnad
-
 from Warren import SnowDepth, SWE
-sys.path.append(os.path.dirname(os.getcwd()))
 import EASEgrid_correct as EASEgrid
 import Functions
 
+#%%
 # specify gridsize and temporal limits
 gridres = 25000  # grid resolution
 dtint = 30  # days per mean
 
 # Define locations of input and output files
 save_path_data = os.path.dirname(os.path.dirname(os.getcwd())) + '/FINAL/AEM-AWI/final/'
+if not os.path.exists(save_path_data):os.makedirs(save_path_data)
 saveplot = os.path.dirname(os.path.dirname(os.getcwd())) + '/FINAL/AEM-AWI/fig/'
-ofile = os.path.dirname(os.path.dirname(os.getcwd())) +'/FINAL/AEM-AWI/final/ESACCIplus-SEAICE-RRDP2+-SIT-AEM-AWI-V3.dat'
-directory = os.path.dirname(os.path.dirname(os.getcwd())) +'/RawData/AEM_AWI'
+ofile = os.path.dirname(os.path.dirname(os.getcwd())) +'/FINAL/AEM-AWI/final/ESACCIplus-SEAICE-RRDP2+-SIT-AEM-AWI-V3.nc'
+directory = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd())))) +'/RRDPp/RawData/AEM_AWI'
 
-count = 0  # used to locate header
+count = 0  # used to locate first file
 
 # Access data
 directories = os.listdir(directory)
@@ -60,7 +61,7 @@ for dir in directories:
             file = os.path.join(dir_data, ifile)
             # Access all SIT files in AEM_AWI
             if (file.endswith('.tab') or file.endswith('.dat') or file.endswith('.nc')) and 'free' not in ifile:
-                print(file)
+                #print(file)
                 
                 #defines variables in output file
                 count+=1
@@ -75,19 +76,17 @@ for dir in directories:
                     if dir == 'Feb_Mar_2004':  # Interpolated dates
                         names = ['DateTime', 'distance', 'Latitude', 'Longitude','Sample ID','EsEs','Height [m]','time_diff']
                         header = -1
-                        pp_flag = 'yes'
                     else:  # find number of headerlines and names of variables in file
                         lookup = b'*/'  # notation for when header is done
-                        count = 0
+                        counthead = 0
                         header = -999
                         with open(file,'rb') as myFile:
                             for num, line in enumerate(myFile, 1):
-                                # print(line.strip())
-                                count+=1
+                                counthead+=1
                                 # break loop when lookup is found
                                 if lookup in line:
-                                    header = count  # note number of headerlines
-                                if count == header+1:
+                                    header = counthead  # note number of headerlines
+                                if counthead == header+1:
                                     headerline = line.decode('utf8').replace("[m]","")  #remove [m]
                                     names = headerline.split("\t")
                                     names = [name.strip() for name in names]
@@ -96,9 +95,9 @@ for dir in directories:
                     # Read data
                     if dir == 'Mar_Apr_2003':  # Problems with gaps in height data
                         # names = names[]
-                        data = np.genfromtxt(file, dtype=None, names=names, skip_header=header+1, usecols=np.arange(0,6)) 
+                        data = np.genfromtxt(file, dtype=None, names=names, skip_header=header+1, usecols=np.arange(0,6), encoding=None) 
                     else:
-                        data = np.genfromtxt(file, dtype=None, names=names, skip_header=header+1) 
+                        data = np.genfromtxt(file, dtype=None, names=names, skip_header=header+1, encoding=None) 
     
                     latitude = data['Latitude']
                     longitude = data['Longitude']
@@ -168,10 +167,14 @@ for dir in directories:
                     dataOut.w_density_final = np.append(dataOut.w_density_final,w_density)
     
                 #Change names to correct format names
+                dataOut.obsID = [dataOut.obsID]*len(lat)
+                ## pp flag + unc flag
+                dataOut.pp_flag = [dataOut.pp_flag]*len(lat)
                 dataOut.lat_final = lat
                 dataOut.lon_final = lon
                 for ll in range(np.size(time,0)):
                     dataOut.date_final = np.append(dataOut.date_final,dt.datetime.strftime(time[ll],"%Y-%m-%dT%H:%M:%S"))
+                dataOut.time = [np.datetime64(d) for d in dataOut.date_final]
                 dataOut.SD_final = avgSD
                 dataOut.SD_std = stdSD
                 dataOut.SD_ln = lnSD
@@ -184,9 +187,13 @@ for dir in directories:
                 # fill empty arrays with NaN values
                 dataOut.Check_Output()
                     
-                # print data to output file
-                dataOut.Print_to_output(ofile, primary='SIT')
-            
-Functions.sort_final_data(ofile, saveplot=saveplot, HS='NH')
+                if count>1:
+                    subset = dataOut.Create_NC_file(ofile,primary='SIT')
+                    df = Functions.Append_to_NC(df, subset)
+                else:
+                    df = dataOut.Create_NC_file(ofile,primary='SIT', datasource='Airborne Electromagnetic Measurement, Alfred Wegener Institute for Polar and Marine Research, doi:10.2312/polfor.2016.011.', key_variables='Ice thickness: sea ice thickness + snow depth')
+
+# Save data to NetCDF
+Functions.save_NC_file(df, ofile, primary='SIT')
 
                     

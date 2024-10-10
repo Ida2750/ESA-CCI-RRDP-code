@@ -20,14 +20,13 @@ import datetime as dt
 
 # -- Third-part modules -- #
 import numpy as np
-import EASEgrid
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 import cartopy.feature as cfeature
 
 # -- Proprietary modules -- #
-from Warren import SnowDepth, SWE
 sys.path.append(os.path.dirname(os.getcwd()))
+from Warren import SnowDepth, SWE
 import EASEgrid_correct as EASEgrid
 import Functions
 from PDF_read_initial_SD import pdf_read_initial
@@ -72,20 +71,21 @@ def write_info_table(self, date, SD_init, SIT_init, num_sh):
 # # Antarctic
 dtint = 30  # days
 gridres = 25000  # m
-hemisphere = 'N'
+hemisphere = 'NH'
 
-if hemisphere == 'S':
-    directory = os.path.dirname(os.path.dirname(os.getcwd())) + '/RawData/SDB_AWI/Antarctic'
+if hemisphere == 'SH':
+    directory = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd())))) + '/RRDPp/RawData/SDB_AWI/Antarctic'
     save_path_data = os.path.dirname(os.path.dirname(os.getcwd())) + '/FINAL/Antarctic/SB_AWI/final/'
+    if not os.path.exists(save_path_data):os.makedirs(save_path_data)
     saveplot = os.path.join(os.path.dirname(
         os.path.dirname(os.getcwd())), 'Final/Antarctic/SB_AWI/fig/')
-    ofile = 'ESACCIplus-SEAICE-RRDP2+-SD-SB-AWI-ANT-V3.dat'
 else:
-    directory =  os.path.dirname(os.path.dirname(os.getcwd())) + '/RawData/SDB_AWI/Arctic'
+    directory =  os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd())))) + '/RRDPp/RawData/SDB_AWI/Arctic'
     save_path_data =  os.path.dirname(os.path.dirname(os.getcwd())) + '/FINAL/SB_AWI/final/'
+    if not os.path.exists(save_path_data):os.makedirs(save_path_data)
     saveplot = os.path.join(os.path.dirname(
         os.path.dirname(os.getcwd())), 'Final/SB_AWI/fig/')
-    ofile = 'ESACCIplus-SEAICE-RRDP2+-SD-SB-AWI-V3.dat'
+ofile = f'ESACCIplus-SEAICE-RRDP2+-SD-SB-AWI-{hemisphere}.nc'
 
 for dir in os.listdir(directory):
     count = 0
@@ -158,19 +158,23 @@ for dir in os.listdir(directory):
                         
                         # Create EASEgrid and returns grid cell indicies (index_i, index_j) for each observation
                         G = EASEgrid.Gridded()
-                        G.SetHemisphere(hemisphere)
+                        if hemisphere=='SH':
+                            G.SetHemisphere('S')
+                        else:
+                            G.SetHemisphere('N')
                         G.CreateGrids(gridres)
                         (index_i, index_j) = G.LatLonToIdx(latitude[index], longitude[index])
             
                         # Takes the time for each grid cell into account and calculate averages
                         avgSD, stdSD, lnSD, uncSD, lat, lon, time, avgSIT, stdSIT, lnSIT, uncSIT, avgFRB, stdFRB, lnFRB, FRB_Unc, avgTair, avgTsurf = G.GridData(
                             dtint, latitude[index], longitude[index], t[index], SD=SD[index], SD_unc=SD_unc[index], VAR1=Tair[index])
+
             
                         if len(time) > 0:
-                            Functions.plot(latitude, longitude, dataOut.obsID, time,saveplot, HS=hemisphere +'H')
+                            Functions.plot(latitude, longitude, dataOut.obsID, time,saveplot, HS=hemisphere)
                             Functions.scatter(dataOut.obsID, t[index], SD[index], time, avgSD, 'SD [m]', saveplot)
 
-                        if hemisphere=='N':
+                        if hemisphere=='NH':
                             # Correlates SB-AWI buoy data with Warren snow depth and snow density
                             for ll in range(np.size(avgSD,0)):
                                 (w_SD,w_SD_epsilon) = SnowDepth(lat[ll],lon[ll],time[ll].month)
@@ -184,6 +188,7 @@ for dir in os.listdir(directory):
                         dataOut.lon_final = lon
                         for ll in range(np.size(time,0)):
                             dataOut.date_final = np.append(dataOut.date_final,dt.datetime.strftime(time[ll],"%Y-%m-%dT%H:%M:%S"))
+                        dataOut.time = [np.datetime64(d) for d in dataOut.date_final]
                         dataOut.SD_final = avgSD
                         dataOut.SD_std = stdSD
                         dataOut.SD_ln = lnSD
@@ -193,13 +198,19 @@ for dir in os.listdir(directory):
                         dataOut.SIT_ln = lnSIT
                         dataOut.SIT_unc = uncSIT
                         dataOut.air_temp_final = avgTair
+                        dataOut.unc_flag = [dataOut.unc_flag]*len(lat)
+                        dataOut.pp_flag = [dataOut.pp_flag]*len(lat)
                         
                         dataOut.obsID = [dataOut.obsID]*len(dataOut.SD_final)
                         
                         # fill empty arrays with NaN values
                         dataOut.Check_Output()
                             
-                        # print data to output file
-                        dataOut.Print_to_output(ofile, primary='SD')
-            
-Functions.sort_final_data(ofile, saveplot=saveplot, HS=hemisphere+'H')
+                        if count>1:
+                            subset = dataOut.Create_NC_file(ofile, primary='SD')
+                            df = Functions.Append_to_NC(df, subset)
+                        else:
+                            df = dataOut.Create_NC_file(ofile, primary='SD', datasource='Autonomous measurements of sea ice properties: https://data.meereisportal.de/relaunch/buoy.php?lang=en&active-tab1=method&active-tab2=buoy&ice-type=buoy&region=all&buoytype=SB&buoystate=all&expedition=all&showMaps=y&dateRepeat=n&timeline=', key_variables='Snow depth')
+
+# Sort final data based on date
+Functions.save_NC_file(df, ofile, primary='SD')

@@ -42,10 +42,12 @@ gridres = 25000  # grid resolution
 dtint = 30  # days per mean
 
 # Define locations of input and output files
-saveplot = os.path.dirname(os.path.dirname(os.getcwd())) + '/FINAL/AEM-AWI/fig/'
 save_path_data = os.path.dirname(os.path.dirname(os.getcwd())) + '/FINAL/AEM-AWI/final/'
-ofile = os.path.dirname(os.path.dirname(os.getcwd())) + '/FINAL/AEM-AWI/final/ESACCIplus-SEAICE-RRDP2+-FRB-AEM-AWI-V3.dat'
-directory = os.path.dirname(os.path.dirname(os.getcwd())) + '/RawData/AEM_AWI'
+if not os.path.exists(save_path_data):os.makedirs(save_path_data)
+saveplot = os.path.dirname(os.path.dirname(os.getcwd())) + '/FINAL/AEM-AWI/fig/'
+ofile = os.path.dirname(os.path.dirname(os.getcwd())) +'/FINAL/AEM-AWI/final/ESACCIplus-SEAICE-RRDP2+-FRB-AEM-AWI.nc'
+directory = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd())))) +'/RRDPp/RawData/AEM_AWI'
+
 
 count = 0  # used to locate header
 
@@ -74,16 +76,16 @@ for dir in directories:
                 dataOut.pp_flag = 0
 
                 lookup = b'*/'  # notation for when header is done
-                count = 0
+                counthead = 0
                 header = -999
                 with open(file,'rb') as myFile:
                     for num, line in enumerate(myFile, 1):
                         # print(line.strip())
-                        count+=1
+                        counthead+=1
                         # break loop when lookup is found
                         if lookup in line:
-                            header = count  # note number of headerlines
-                        if count == header+1:
+                            header = counthead  # note number of headerlines
+                        if counthead == header+1:
                             headerline = line.decode('utf8').replace("[m]","")  #remove [m]
                             names = headerline.split("\t")
                             names = [name.strip() for name in names]
@@ -92,9 +94,9 @@ for dir in directories:
                 # Read data
                 if dir == 'Mar_Apr_2003':  # Problems with gaps in height data
                     # names = names[]
-                    data = np.genfromtxt(file, dtype=None, names=names, skip_header=header+1, usecols=np.arange(0,6)) 
+                    data = np.genfromtxt(file, dtype=None, names=names, skip_header=header+1, usecols=np.arange(0,6), encoding=None) 
                 else:
-                    data = np.genfromtxt(file, dtype=None, names=names, skip_header=header+1) 
+                    data = np.genfromtxt(file, dtype=None, names=names, skip_header=header+1, encoding=None) 
 
                 latitude = data['Latitude']
                 longitude = data['Longitude']
@@ -117,7 +119,6 @@ for dir in directories:
                                      for s in dates])
                 except ValueError:  # no date provided in file
                     t = gd(file, ifile)  # Calls Get_Date file
-                    flag = 1
                     dataOut.pp_flag = 1
                 
                 # Define obsID
@@ -136,7 +137,7 @@ for dir in directories:
                 
                 # Take the time for each grid cell into account and calculate 25 km averages
                 FRB_unc = np.ones(len(latitude)) * 0.1  # uncertainty of approx. 10 cm 
-                dataOut.unc_flag = 2
+                
                 
                 # Create EASEgrid and returns grid cell indicies (index_i, index_j) for each observation
                 G = EASEgrid.Gridded()
@@ -145,9 +146,11 @@ for dir in directories:
                 (index_i, index_j) = G.LatLonToIdx(latitude, longitude)
     
                 # Takes the time for each grid cell into account and calculate averages
-                avgSD, stdSD, lnSD, uncSD, lat, lon, time, avgSIT, stdSIT, lnSIT, uncSIT, avgFRB, stdFRB, lnFRB, uncFRB = G.GridData(
+                avgSD, stdSD, lnSD, uncSD, lat, lon, time, avgSIT, stdSIT, lnSIT, uncSIT, avgFRB, stdFRB, lnFRB, uncFRB, var1, var2 = G.GridData(
                     dtint, latitude, longitude, t, FRB=FRB, FRB_unc=FRB_unc)
-    
+
+                dataOut.unc_flag = np.ones(len(avgFRB)).astype(int)*2
+                
                 if len(time) > 0:
                     Functions.plot(latitude, longitude, dataOut.obsID, time,saveplot, HS='NH')
                     Functions.scatter(dataOut.obsID, t, FRB, time, avgFRB, 'FRB [m]', saveplot)
@@ -161,23 +164,39 @@ for dir in directories:
                     w_density=int((wswe/w_SD)*1000)
                     dataOut.w_density_final = np.append(dataOut.w_density_final,w_density)
     
+                # #Change names to correct format names
+                # dataOut.lat_final = lat
+                # dataOut.lon_final = lon
+                # for ll in range(np.size(time,0)):
+                #     dataOut.date_final = np.append(dataOut.date_final,dt.datetime.strftime(time[ll],"%Y-%m-%dT%H:%M:%S"))
+                # dataOut.FRB_final = avgFRB
+                # dataOut.FRB_std = stdFRB
+                # dataOut.FRB_ln = lnFRB
+                # dataOut.FRB_unc = uncFRB
+
                 #Change names to correct format names
+                dataOut.obsID = [dataOut.obsID]*len(lat)
+                ## pp flag + unc flag
+                dataOut.pp_flag = [dataOut.pp_flag]*len(lat)
                 dataOut.lat_final = lat
                 dataOut.lon_final = lon
                 for ll in range(np.size(time,0)):
                     dataOut.date_final = np.append(dataOut.date_final,dt.datetime.strftime(time[ll],"%Y-%m-%dT%H:%M:%S"))
+                dataOut.time = [np.datetime64(d) for d in dataOut.date_final]
                 dataOut.FRB_final = avgFRB
                 dataOut.FRB_std = stdFRB
                 dataOut.FRB_ln = lnFRB
                 dataOut.FRB_unc = uncFRB
-
                 
                 # fill empty arrays with NaN values
                 dataOut.Check_Output()
                     
-                # print data to output file
-                dataOut.Print_to_output(ofile, primary='FRB')
-        
-Functions.sort_final_data(ofile, saveplot=saveplot, HS='NH')
+                if count>1:
+                    subset = dataOut.Create_NC_file(ofile,primary='FRB')
+                    df = Functions.Append_to_NC(df, subset)
+                else:
+                    df = dataOut.Create_NC_file(ofile,primary='FRB', datasource='Airborne Electromagnetic Measurement, Alfred Wegener Institute for Polar and Marine Research, doi:10.2312/polfor.2016.011.', key_variables='Freeboard: sea ice freeboard + snow depth')
 
+# Save data to NetCDF
+Functions.save_NC_file(df, ofile, primary='FRB')
                     

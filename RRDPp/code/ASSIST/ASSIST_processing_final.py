@@ -23,6 +23,7 @@ import re
 import numpy as np
 
 # -- Proprietary modules -- #
+sys.path.append(os.path.dirname(os.getcwd()))
 from Warren import SnowDepth, SWE
 sys.path.append(os.path.dirname(os.getcwd()))
 import EASEgrid_correct as EASEgrid
@@ -97,11 +98,11 @@ def Get_unc(SD, SIT):
 
 parrent = os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd())))
 # Reads input data
-directory = parrent + '/RRDPp/RawData/ASSIST'
+directory = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd())))) + '/RRDPp/RawData/ASSIST'
 # saving location
 save_path_data=parrent + '/RRDPp/FINAL/ASSIST/final/'
 saveplot = parrent + '/RRDPp/FINAL/ASSIST/fig/'
-ofile ='ESACCIplus-SEAICE-RRDP2+-SIT-ASSIST-v4-test2.dat'
+ofile ='ESACCIplus-SEAICE-RRDP2+-SIT-ASSIST.nc'
 ofile = os.path.join(save_path_data,ofile)
 
 gridres = 25000  # grid resolution
@@ -205,7 +206,7 @@ for dir in directories:
                 SD_unc, SIT_unc = Functions.Get_unc(SD, SIT)
                 # Takes the time for each grid cell into account and calculate averages
                 (avgSD, stdSD, lnSD, uncSD, lat, lon, time, avgSIT, stdSIT, lnSIT, uncSIT, avgFRB, stdFRB,
-                 lnFRB, FRB_Unc,) = G.GridData(dtint, latitude, longitude, t, SD, SD_unc, SIT, SIT_unc, FRB=[], FRB_unc=[])
+                 lnFRB, FRB_Unc,var1, var2) = G.GridData(dtint, latitude, longitude, t, SD, SD_unc, SIT, SIT_unc, FRB=[], FRB_unc=[])
                 
                 if len(time)>0:
                     Functions.plot(lat, lon, dataOut.obsID, time,saveplot)
@@ -224,11 +225,15 @@ for dir in directories:
                 # remove SD measurements where the number of SIT measurements are zero
                 # If SIT is not recorded we do not trust the SD measurements
                 index = lnSIT != 0
+                ## pp flag + unc flag
+                dataOut.pp_flag = [int(dataOut.pp_flag)]*len(lat[index])
+                dataOut.unc_flag = [int(dataOut.unc_flag)]*len(lat[index])
                 #Change names to correct format names
                 dataOut.lat_final = lat[index]
                 dataOut.lon_final = lon[index]
                 for ll in range(np.size(time[index],0)):
                     dataOut.date_final = np.append(dataOut.date_final,dt.datetime.strftime(time[ll],"%Y-%m-%dT%H:%M:%S"))
+                dataOut.time = [np.datetime64(d) for d in dataOut.date_final]
                 dataOut.SD_final = avgSD[index]
                 dataOut.SD_std = stdSD[index]
                 dataOut.SD_ln = lnSD[index]
@@ -238,11 +243,17 @@ for dir in directories:
                 dataOut.SIT_ln = lnSIT[index]
                 dataOut.SIT_unc = uncSIT[index]
                 dataOut.obsID = [dataOut.obsID]*len(dataOut.SIT_final)
+                dataOut.w_SD_final = dataOut.w_SD_final[index]
+                dataOut.w_density_final = dataOut.w_density_final[index]
                 
                 # fill empty arrays with NaN values
                 dataOut.Check_Output()
                     
-                # print data to output file
-                dataOut.Print_to_output(ofile, primary='SIT')
+                if count>1:
+                    subset = dataOut.Create_NC_file(ofile, primary='SIT')
+                    df = Functions.Append_to_NC(df, subset)
+                else:
+                    df = dataOut.Create_NC_file(ofile, primary='SIT', datasource='ASSIST: https://icewatch.met.no/', key_variables='Sea Ice thickness and snow depth')
 
-Functions.sort_final_data(ofile, saveplot)
+# Save data to NetCDF
+Functions.save_NC_file(df, ofile, primary='SIT')

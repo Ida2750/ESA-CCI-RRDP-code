@@ -10,7 +10,7 @@ __author__ = 'Ida Olsen'
 __contributors__ = 'Henriette Skorup'
 __contact__ = ['ilo@dmi.dk']
 __version__ = '0'
-__date__ = '2021-08-31'
+__date__ = '2024-08-12'
 
 # -- Built-in modules -- #
 import os.path
@@ -110,17 +110,17 @@ def Get_lat_lon(file):
 dtint = 30  # days
 gridres = 25000  # m
 
-directory = os.path.dirname(os.path.dirname(
-    os.getcwd())) + '/RawData/NPEO/data'
+directory = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
+    os.getcwd())))) + '/RRDPp/RawData/NPEO/data'
 
 # saving locations
 save_path_data = os.path.dirname(os.path.dirname(
     os.getcwd())) + '/FINAL/NPEO/final/'
-save_path_plot = os.path.dirname(os.path.dirname(
-    os.getcwd())) + '/FINAL/NPEO/plot/'
-ofile = save_path_data + 'ESACCIplus-SEAICE-RRDP2-SID-NPEO-V3.dat'
+ofile = save_path_data + 'ESACCIplus-SEAICE-RRDP2-SID-NPEO.nc'
 saveplot = os.path.dirname(os.path.dirname(
     os.getcwd())) + '/FINAL/NPEO/fig/'
+if not os.path.exists(save_path_data):os.makedirs(save_path_data)
+if not os.path.exists(saveplot):os.makedirs(saveplot)
 
 count = 0
 for dir in os.listdir(directory):
@@ -210,11 +210,22 @@ for dir in os.listdir(directory):
             dataOut.lat_final = [lat for el in dataOut.date_final]
             dataOut.lon_final = [lon for el in dataOut.date_final]
 
+            dataOut.time = [np.datetime64(d) for d in dataOut.date_final]
+            dataOut.pp_flag = [dataOut.pp_flag]*len(dataOut.SID_final)
+            dataOut.obsID = [dataOut.obsID]*len(dataOut.SID_final)
+
+            #time_in = [dt.datetime(int(y[:4]),int(m),int(d)) for y,m,d in zip(dates, months, days)]
+            Functions.scatter(dataOut.obsID[0], dates, SID, dataOut.time, dataOut.SID_final, 'SID [m]', saveplot)
+            
             # fill empty arrays with NaN values
             dataOut.Check_Output()
 
-            # print data to output file
-            dataOut.Print_to_output(ofile, primary='SID')
+            if count>1:
+                subset = dataOut.Create_NC_file(ofile, primary='SID')
+                df = Functions.Append_to_NC(df, subset)
+            else:
+                df = dataOut.Create_NC_file(ofile, primary='SID', datasource='North Pole Environmental Observatory (NPEO) Oceanographic Mooring Data: https://doi.org/10.5065/D6P84921', key_variables='Sea Ice Draft')
+                
 
 # Sort final data based on date
-Functions.sort_final_data(ofile, saveplot=saveplot, HS='NH', primary='SID')
+Functions.save_NC_file(df, ofile, primary='SID')       

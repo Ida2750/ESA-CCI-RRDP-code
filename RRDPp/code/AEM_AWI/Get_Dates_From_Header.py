@@ -26,7 +26,7 @@ def Get_date(file, ifile):
             # break loop when lookup is found
             if lookup_start in line.decode('utf8'):  # find date information in header
                 numbers = re.findall(r'[0-9]+', line.decode('utf8'))
-                print(line)
+                #print(line)
                 date_start = numbers[0] + numbers[1] + numbers[2] + numbers[3] + numbers[4] + numbers[5]
                 date_end = numbers[6] + numbers[7] + numbers[8] + numbers[9] + numbers[10] + numbers[11]
     

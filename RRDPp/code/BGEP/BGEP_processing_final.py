@@ -15,7 +15,7 @@ __author__ = 'Ida Olsen'
 __contributors__ = 'Henriette Skorup'
 __contact__ = ['ilo@dmi.dk']
 __version__ = '0'
-__date__ = '2021-10-22'
+__date__ = '2024-08-12'
 
 # -- Built-in modules -- #
 import os.path
@@ -36,11 +36,12 @@ import Functions
 dtint = 30  # days
 gridres = 25000  # m
 
-directory = os.path.dirname(os.path.dirname(os.getcwd())) + '/RawData/BPR_ULS_BGEP'
+directory = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd())))) + '/RRDPp/RawData/BPR_ULS_BGEP'
 saveplot = os.path.dirname(os.path.dirname(os.getcwd())) + '/FINAL/BGEP/fig/'
 save_path_data= os.path.dirname(os.path.dirname(os.getcwd())) + '/FINAL/BGEP/final/'
-ofile = os.path.dirname(os.path.dirname(os.getcwd())) +'/FINAL/BGEP/final/ESACCIplus-SEAICE-RRDP2+-SID-BGEP-V3.dat'
-
+ofile = os.path.dirname(os.path.dirname(os.getcwd())) +'/FINAL/BGEP/final/ESACCIplus-SEAICE-RRDP2+-SID-BGEP.nc'
+if not os.path.exists(save_path_data):os.makedirs(save_path_data)
+if not os.path.exists(saveplot):os.makedirs(saveplot)
 
 files = glob.glob(save_path_data+'*')
 # for f in files:
@@ -76,12 +77,12 @@ for dir in os.listdir(directory):
                         break
  
             # Reads observation data from ASCII-file
-            df = pd.read_table(file, skiprows=1, sep="\s+", dtype = 'float32', converters = {'%date': str})
+            dff = pd.read_table(file, skiprows=1, sep="\s+", dtype = 'float32', converters = {'%date': str})
                         
             # Load data
-            dates = df['%date'].to_numpy()
-            time = df['time(UTC)'].to_numpy() #UTC - duration of each time used on each measurement
-            SID = df['draft(m)'].to_numpy() #m
+            dates = dff['%date'].to_numpy()
+            time = dff['time(UTC)'].to_numpy() #UTC - duration of each time used on each measurement
+            SID = dff['draft(m)'].to_numpy() #m
             SID_Unc = np.array([0.10 for sid in SID]) # uncertainty of 10 cm approx.
             print('Getting months')
             
@@ -132,10 +133,21 @@ for dir in os.listdir(directory):
                 # Functions.plot(dataOut.lat, dataOut.lon, dataOut.obsID, time_out,saveplot, HS='NH')
                 Functions.scatter(dataOut.obsID + '_' + str(time_in[0].year), time_in[::1000], SID[::1000], time_out, dataOut.SID_final, 'SID [m]', saveplot)
             
+
+            dataOut.time = [np.datetime64(d) for d in dataOut.date_final]
+            dataOut.pp_flag = [dataOut.pp_flag]*len(dataOut.SID_final)
+            dataOut.unc_flag = [dataOut.unc_flag]*len(dataOut.SID_final)
+            dataOut.obsID = [dataOut.obsID]*len(dataOut.SID_final)
+            
             # fill empty arrays with NaN values
             dataOut.Check_Output()
-                
-            # print data to output file
-            dataOut.Print_to_output(ofile, primary='SID')
     
-Functions.sort_final_data(ofile, saveplot=saveplot, HS='NH', primary='SID')
+            if count>1:
+                subset = dataOut.Create_NC_file(ofile, primary='SID')
+                df = Functions.Append_to_NC(df, subset)
+            else:
+                df = dataOut.Create_NC_file(ofile, primary='SID', datasource='Beaufort Gyre Exploration Project, Mooring Data: https://www2.whoi.edu/site/beaufortgyre/data/mooring-data/', key_variables='Sea Ice Draft')
+                
+
+# Sort final data based on date
+Functions.save_NC_file(df, ofile, primary='SID')

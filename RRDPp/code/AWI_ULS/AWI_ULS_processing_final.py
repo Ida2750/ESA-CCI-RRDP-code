@@ -11,7 +11,7 @@ __author__ = 'Ida Olsen'
 __contributors__ = 'Henriette Skorup'
 __contact__ = ['ilo@dmi.dk']
 __version__ = '0'
-__date__ = '2023-06-12'
+__date__ = '2024-08-12'
 
 # -- Built-in modules -- #
 import os.path
@@ -116,15 +116,17 @@ def Bias_correction(SID):
 #%% Main
 
 #define output variables
-Bias=True
+Bias=False
 # raw dat directory
-directory = os.path.dirname(os.path.dirname(os.getcwd())) + '/RawData/Antarctic/AWI_ULS/Behrendt_2013/datasets/'
+directory = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd())))) + '/RRDPp/RawData/Antarctic/AWI_ULS/Behrendt_2013/datasets/'
 # saving path for output files and figures
 savepath = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), 'Final/Antarctic/AWI_ULS/final/')
 saveplot = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), 'Final/Antarctic/AWI_ULS/fig/')
 # name of output file
-ofile = 'ESACCIplus-SEAICE-RRDP2+-SID-AWI-ULS_Bias_'+str(Bias)+'.dat'
+ofile = 'ESACCIplus-SEAICE-RRDP2+-SID-AWI-ULS_Bias_'+str(Bias)+'.nc'
 ofile =  os.path.join(savepath, ofile)
+if not os.path.exists(savepath):os.makedirs(savepath)
+if not os.path.exists(saveplot):os.makedirs(saveplot)
 
 
 count = 0 # used to locate header
@@ -258,7 +260,19 @@ for ifile in os.listdir(directory):
         
         Functions.scatter(dataOut.obsID, dates, SID, dates_final, dataOut.SID_final, 'SID [m]', saveplot)
         
+        dataOut.time = [np.datetime64(d) for d in dataOut.date_final]
+        dataOut.pp_flag = [dataOut.pp_flag]*len(dataOut.SID_final)
+        dataOut.obsID = [dataOut.obsID]*len(dataOut.SID_final)
+        
+        # fill empty arrays with NaN values
         dataOut.Check_Output()
-        dataOut.Print_to_output(ofile, primary='SID')
 
-Functions.sort_final_data(ofile, saveplot=saveplot, HS='SH', primary='SID')          
+        if count>1:
+            subset = dataOut.Create_NC_file(ofile, primary='SID')
+            df = Functions.Append_to_NC(df, subset)
+        else:
+            df = dataOut.Create_NC_file(ofile, primary='SID', datasource='Sea ice draft measured by upward looking sonars in the Weddell Sea (Antarctica): https://doi.org/10.1594/PANGAEA.785565', key_variables='Sea Ice Draft')
+            
+
+# Sort final data based on date
+Functions.save_NC_file(df, ofile, primary='SID')         
