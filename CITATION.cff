@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this repository, please cite it as follows:"
+authors:
+  - name: "Ida Olsen and Henriette Skourup"
+    orcid: "0009-0000-7016-1596" 
+title: "ESA-CCI-RRDP-code"
+version: "v1.0.0"
+date-released: "2024-02-05"
+doi: "https://doi.org/10.5281/zenodo.14808969" 
+url: "https://github.com/Ida2750/ESA-CCI-RRDP-code"
