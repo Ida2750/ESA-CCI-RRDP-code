@@ -39,6 +39,8 @@ To do the co-location reference data from the CCI SIT RRDP DOI: 10.11583/DTU.237
 
 For an overview of the satellite folder see the diagram above.\
 
+To change the spatial and temporal resolutions from the default (30 days and 25km (northern hemisphere) and 50km (southern hemisphere)) one must adjust the parameters gridres = 25000  # grid resolution and
+dtint = 30  # days per mean, which are defined in the start of the processing scripts. For collocation the script collocate.py must be adjusted by defining the days and resolution parameters in the function collocation_part2.
 
 # Credits
 This project was made Henriette Skourup and Ida Olsen. Data used in the project were gathered by several external organisations. 
