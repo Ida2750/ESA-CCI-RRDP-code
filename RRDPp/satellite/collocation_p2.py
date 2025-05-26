@@ -19,7 +19,13 @@ import math
 import warnings
 # -- Proprietary modules -- #
 
-def ERS_data(ObsData, KDstruct, CSdata, CSinptime, CSx, CSy, output):
+def robust_std(data):
+    median = np.nanmedian(data)
+    mad = np.nanmedian(np.abs(data - median))
+    return mad * 1.4826  # scaling factor for normal distribution
+
+def ERS_data(ObsData, KDstruct, CSdata, CSinptime, CSx, CSy, output, days_half):
+
     obsDate = ObsData['date']
     obstime = np.array([dt.datetime.strptime(s, "%Y-%m-%dT%H:%M:%S") 
                      for s in obsDate])
@@ -38,8 +44,8 @@ def ERS_data(ObsData, KDstruct, CSdata, CSinptime, CSx, CSy, output):
             time[ij] = (CStime[ij]-obstime[ii]).days
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)
-            if not np.isnan(np.nanmean(sif[np.abs(time)<15])):
-                CSsif[ii] = np.nanmean(sif[np.abs(time)<15])
+            if not np.isnan(np.nanmean(sif[np.abs(time)<=days_half])):
+                CSsif[ii] = np.nanmean(sif[np.abs(time)<=days_half])
             
                 time_string = dt.datetime.strftime(obstime[ii],"%Y-%m-%dT%H:%M:%S")      
                 print(time_string,ObsData['lat'][ii],ObsData['lon'][ii],
@@ -47,7 +53,7 @@ def ERS_data(ObsData, KDstruct, CSdata, CSinptime, CSx, CSy, output):
                     
     output.close()
 
-def collocation_part2(obsfile, CSfile, count, ofile, var, HS='NH'):
+def collocation_part2(obsfile, CSfile, count, ofile, var, HS='NH', days=30, resolution=25000):
     """
 
     Parameters
@@ -71,13 +77,18 @@ def collocation_part2(obsfile, CSfile, count, ofile, var, HS='NH'):
     None.
 
     """
+
+    ccc = 0
+
     # Defines standad projection for the Lambert Azimuthal Equeal Area projection
     if HS == 'NH':
         Pollat0  = 90.
         Pollon0  = 0.
+        dist = resolution/2
     elif HS == 'SH':
         Pollat0  = -90.
         Pollon0  = 0.
+        dist = (resolution*2)/2
     ell = 'WGS84'
     PolProj=pyproj.Proj(proj='laea', ellps=ell, datum='WGS84', lat_0=Pollat0, lon_0=Pollon0, units='m')
 
@@ -91,6 +102,17 @@ def collocation_part2(obsfile, CSfile, count, ofile, var, HS='NH'):
         CSdraftunc = CSdata['sitUnc'] + CSdata['sifUnc']
         print('draft computed')
         
+        #apply limits
+        CSdraft[CSdraft>8] = np.nan
+        CSdata['sit'][CSdata['sit']>10] = np.nan
+        CSdata['sif'][CSdata['sif']>2] = np.nan
+        CSdata['sd'][CSdata['sd']>2] = np.nan
+
+        CSdraft[CSdraft<0] = np.nan
+        CSdata['sit'][CSdata['sit']<0] = np.nan
+        CSdata['sif'][CSdata['sif']<0] = np.nan
+        CSdata['sd'][CSdata['sd']<0] = np.nan
+
     elif 'ERS' in CSfile:
         CSnames = ['time','lat','lon','sif','sifUnc']
         dtypes = [float for n in CSnames]
@@ -110,7 +132,10 @@ def collocation_part2(obsfile, CSfile, count, ofile, var, HS='NH'):
     print('projection succesfull')
     
     # Reads input data from observation file (RRDP), ASCII format
-    ObsData = np.genfromtxt(obsfile,dtype=None,names=True, encoding='Latin1')
+    try:
+        ObsData = np.genfromtxt(obsfile,dtype=None,names=True, encoding='Latin1')
+    except:
+        ObsData = np.genfromtxt(obsfile.replace('SIT', 'SD'),dtype=None,names=True, encoding='Latin1')
     obsDate = ObsData['date']
 
     obstime = np.array([dt.datetime.strptime(s, "%Y-%m-%dT%H:%M:%S") 
@@ -119,15 +144,12 @@ def collocation_part2(obsfile, CSfile, count, ofile, var, HS='NH'):
     obsx,obsy = PolProj(ObsData['lon'],ObsData['lat'])
     print('projection of observation data succesfull')
     
-    if HS == 'SH':
-        dist = 50000/2
-    else:
-        dist = 25000/2;  # search radius
-        
+
     tree = ss.cKDTree(list(zip(CSx, CSy)))
     KDstruct = tree.query_ball_point(list(zip(obsx, obsy)), dist, p=2)
+
     print('KDstruct made')
-    
+
     # create a 1D numpy-arrays of length obslat with elements NaN 
     ## variables
     CSsit = np.zeros(np.shape(ObsData['lat'])) * np.nan
@@ -152,19 +174,24 @@ def collocation_part2(obsfile, CSfile, count, ofile, var, HS='NH'):
     
     
     # Make output file
-    print(ofile)
+    #print(ofile)
+    # temporal resolution
+    days_half = days/2
+
     if count == 0 and not 'QL' in CSfile:
         output = open(ofile,'w')    
     else:
         output = open(ofile,'a')
     
     if 'ERS' in CSfile:
-        ERS_data(ObsData, KDstruct, CSdata, CSinptime, CSx, CSy, output)
+        ERS_data(ObsData, KDstruct, CSdata, CSinptime, CSx, CSy, output, days_half)
     else: # ENV or CS2
         ##%% Loops through elements of the KDstruct and calculates the mean
         # of elements within +/-15 days of the time of the reference data  
         time_string = []
         # The length of KDstruct equals the number of reference data observations
+        print(len(ObsData))
+        print(len(KDstruct))
         for ii in range(len(KDstruct)):
             sit = CSdata['sit'][KDstruct[ii]]
             sif = CSdata['sif'][KDstruct[ii]]
@@ -182,33 +209,33 @@ def collocation_part2(obsfile, CSfile, count, ofile, var, HS='NH'):
                 # find time differences
                 time[ij] = (CStime[ij]-obstime[ii]).days
             # Get average value of satellite observations within time difference
-            CSsit[ii] = np.nanmean(sit[np.abs(time)<15])
-            CSsif[ii] = np.nanmean(sif[np.abs(time)<15])
-            CSsd[ii]  = np.nanmean(sd[np.abs(time)<15])
-            CSsid[ii]  = np.nanmean(sid[np.abs(time)<15])
+            CSsit[ii] = np.nanmedian(sit[np.abs(time)<=days_half])
+            CSsif[ii] = np.nanmedian(sif[np.abs(time)<=days_half])
+            CSsd[ii]  = np.nanmedian(sd[np.abs(time)<=days_half])
+            CSsid[ii]  = np.nanmedian(sid[np.abs(time)<=days_half])
 	        
             # freeboard
             # number of measurements
-            CSsifln[ii] = len(sif[np.isnan(sif)==0]) 
+            CSsifln[ii] = len(sif[np.abs(time)<=days_half][np.isnan(sif[np.abs(time)<=days_half])==0]) 
             # standard deviation of co-located satellite observations
-            CSsifstd[ii] = np.std(sif[np.abs(time)<15])
+            CSsifstd[ii] = robust_std(sif[np.abs(time)<=days_half])
             # Uncertainty of co-located satellite observations
-            CSsifunc[ii] = 1/CSsifln[ii]*np.sqrt(np.nansum(sif_unc[np.abs(time)<15]**2))
+            CSsifunc[ii] = 1/CSsifln[ii]*np.sqrt(np.nansum(sif_unc[np.abs(time)<=days_half]**2))
             
             # sea ice thickness
-            CSsitln[ii] = len(sit[np.isnan(sit)==0]) 
-            CSsitstd[ii] = np.std(sit[np.abs(time)<15])
-            CSsitunc[ii] = 1/CSsitln[ii]*np.sqrt(np.nansum(sit_unc[np.abs(time)<15]**2))
+            CSsitln[ii] =  len(sit[np.abs(time)<=days_half][np.isnan(sit[np.abs(time)<=days_half])==0]) 
+            CSsitstd[ii] = robust_std(sit[np.abs(time)<=days_half])
+            CSsitunc[ii] = 1/CSsitln[ii]*np.sqrt(np.nansum(sit_unc[np.abs(time)<=days_half]**2))
             
             # snow depth
-            CSsdln[ii] = len(sd[np.isnan(sd)==0]) 
-            CSsdstd[ii] = np.std(sd[np.abs(time)<15])
-            CSsdunc[ii] = 1/CSsdln[ii]*np.sqrt(np.nansum(sd_unc[np.abs(time)<15]**2))
+            CSsdln[ii] =  len(sd[np.abs(time)<=days_half][np.isnan(sid[np.abs(time)<=days_half])==0]) 
+            CSsdstd[ii] = robust_std(sd[np.abs(time)<=days_half])
+            CSsdunc[ii] = 1/CSsdln[ii]*np.sqrt(np.nansum(sd_unc[np.abs(time)<=days_half]**2))
             
             # sea ice draft
-            CSsidln[ii] = len(sid[np.isnan(sid)==0]) 
-            CSsidstd[ii] = np.std(sid[np.abs(time)<15])
-            CSsidunc[ii] = 1/CSsidln[ii]*np.sqrt(np.nansum(sid_unc[np.abs(time)<15]**2))
+            CSsidln[ii] =  len(sid[np.abs(time)<=days_half][np.isnan(sid[np.abs(time)<=days_half])==0]) 
+            CSsidstd[ii] = robust_std(sid[np.abs(time)<=days_half])
+            CSsidunc[ii] = 1/CSsidln[ii]*np.sqrt(np.nansum(sid_unc[np.abs(time)<=days_half]**2))
             
             # formats datetime object into a string
             time_string = dt.datetime.strftime(obstime[ii],"%Y-%m-%dT%H:%M:%S")
@@ -218,6 +245,7 @@ def collocation_part2(obsfile, CSfile, count, ofile, var, HS='NH'):
                 if 'SID' in var:
                     print(time_string,ObsData['lat'][ii],ObsData['lon'][ii],ObsData['SID'][ii],
                           CSsid[ii],ObsData['SIDstd'][ii],ObsData['SIDln'][ii], ObsData['SIDunc'][ii],
+                          ObsData['QFT'][ii],ObsData['QFS'][ii],ObsData['QFG'][ii],
                           CSsidstd[ii], CSsidln[ii],CSsidunc[ii], file=output)
                 else:
                     print(time_string,ObsData['lat'][ii],ObsData['lon'][ii],ObsData['SD'][ii],
@@ -225,9 +253,31 @@ def collocation_part2(obsfile, CSfile, count, ofile, var, HS='NH'):
                           ObsData['SDstd'][ii],ObsData['SDln'][ii],ObsData['SDunc'][ii],
                           ObsData['SITstd'][ii],ObsData['SITln'][ii],ObsData['SITunc'][ii],
                           ObsData['FRBstd'][ii],ObsData['FRBln'][ii],ObsData['FRBunc'][ii],
+                          ObsData['QFT'][ii],ObsData['QFS'][ii],ObsData['QFG'][ii],
                           CSsdstd[ii], CSsdln[ii], CSsdunc[ii], CSsitstd[ii], CSsitln[ii], 
-                          CSsitunc[ii], CSsifstd[ii], CSsifln[ii],CSsifunc[ii],file=output)
+                          CSsitunc[ii], CSsifstd[ii], CSsifln[ii],CSsifunc[ii], ii, file=output)
                     
+                    lat = CSdata["lat"][KDstruct[ii]]
+                    lon = CSdata["lon"][KDstruct[ii]]
+                    if ObsData['obsID'][ii]=='OIB_QL_20190422':
+                        ccc +=1
+                        # Make sure all array contents are fully printed
+                        np.set_printoptions(threshold=np.inf)
+                        with open(f'output_4_{ccc}.txt', 'w') as f100:
+                            f100.write(f'obsline {ObsData[ii]}\n')
+                            f100.write(f'satlat: {lat[np.abs(time)<=2]}\n')
+                            f100.write(f'satlon: {lon[np.abs(time)<=2]}\n')
+                            f100.write(f'sattime: {CStime[np.abs(time)<=2]}\n')
+                        with open(f'output_16_{ccc}.txt', 'w') as f100:
+                            f100.write(f'obsline {ObsData[ii]}\n')
+                            f100.write(f'satlat: {lat[np.abs(time)<=8]}\n')
+                            f100.write(f'satlon: {lon[np.abs(time)<=8]}\n')
+                            f100.write(f'sattime: {CStime[np.abs(time)<=8]}\n')
+                        with open(f'output_30_{ccc}.txt', 'w') as f100:
+                            f100.write(f'obsline {ObsData[ii]}\n')
+                            f100.write(f'satlat: {lat[np.abs(time)<=15]}\n')
+                            f100.write(f'satlon: {lon[np.abs(time)<=15]}\n')
+                            f100.write(f'sattime: {CStime[np.abs(time)<=15]}\n')
         output.close()
     
     

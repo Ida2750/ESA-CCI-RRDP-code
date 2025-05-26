@@ -113,17 +113,22 @@ def Bias_correction(SID):
             SID[i] = np.nan
     return SID
 
+def robust_std(data):
+    median = np.nanmedian(data)
+    mad = np.nanmedian(np.abs(data - median))
+    return mad * 1.4826  # scaling factor for normal distribution
 #%% Main
 
 #define output variables
-Bias=False
+Bias=True
 # raw dat directory
-directory = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd())))) + '/RRDPp/RawData/Antarctic/AWI_ULS/Behrendt_2013/datasets/'
+#directory = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd())))) + '/RRDPp/RawData/Antarctic/AWI_ULS/Behrendt_2013/datasets/'
+directory = '/dmidata/projects/cmems2/C3S/RRDPp/RawData/Antarctic/AWI_ULS/Behrendt_2013/datasets'
 # saving path for output files and figures
-savepath = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), 'Final/Antarctic/AWI_ULS/final/')
-saveplot = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), 'Final/Antarctic/AWI_ULS/fig/')
+savepath = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), 'FINAL/Antarctic/AWI_ULS/final/')
+saveplot = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), 'FINAL/Antarctic/AWI_ULS/fig/')
 # name of output file
-ofile = 'ESACCIplus-SEAICE-RRDP2+-SID-AWI-ULS_Bias_'+str(Bias)+'.nc'
+ofile = 'ESACCIplus-SEAICE-RRDP2+-SID-AWI-ULS_Bias_'+str(Bias)+'-robusttest.nc'
 ofile =  os.path.join(savepath, ofile)
 if not os.path.exists(savepath):os.makedirs(savepath)
 if not os.path.exists(saveplot):os.makedirs(saveplot)
@@ -215,7 +220,7 @@ for ifile in os.listdir(directory):
             # define uncertainty
             SID_Unc = np.zeros(SID.shape)
             for i, dat in zip(range(len(dates)), dates):
-                if dat.month > 5 and dat.month < 9:
+                if dat.month < 6 or dat.month > 10:
                     SID_Unc[i] = 0.05
                 else:
                     SID_Unc[i] = 0.12
@@ -224,12 +229,13 @@ for ifile in os.listdir(directory):
             # define uncertainty
             SID_Unc = np.array([0.23 for S in SID])
             
-            
+
         ## Bias correction based on table4 A. Behrendt el. al 2013
         if Bias==True:
             SID = Bias_correction(SID)
-        
-        
+
+        SID[SID<=0] = np.nan
+        SID[SID>8] = np.nan
 
         # Find indexes of new months
         mondiff=np.where(~(np.diff(months) == 0))[0] #index of when month changes
@@ -237,8 +243,10 @@ for ifile in os.listdir(directory):
         
         # Get average value of variables for each month        
         # loop over variables, but assure that the length takes only the non nan value elements
-        dataOut.SID_final=np.array([np.nanmean(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
-        dataOut.SID_std=np.array([np.nanstd(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+        dataOut.SID_final=np.array([np.nanmedian(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+        #dataOut.SID_std=np.array([np.nanstd(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+        dataOut.SID_std = np.array([robust_std(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+
         dataOut.SID_ln=np.array([len(SID[index[i]:index[i+1]][~np.isnan(SID[index[i]:index[i+1]])]) for i in range(len(index)-1)])
         dataOut.unc_flag = np.array([unc_flag[index[i]] for i in range(len(index)-1)])
         
@@ -248,6 +256,37 @@ for ifile in os.listdir(directory):
             start = index[i]
             end = index[i+1]
             dataOut.SID_unc[i] = 1/dataOut.SID_ln[i] * np.sqrt(np.nansum(SID_Unc[start:end]**2))
+
+        ######### QUALITY FLAGS ############
+        dataOut.QFT = [] # temporal
+        dataOut.QFS = [] # spatial
+        dataOut.QFG = [] # global threshold
+
+        days = [time.day for time in dates]
+        for i in range(len(index)-1):
+            # find number of days
+            unique = len(np.unique(days[index[i]:index[i+1]]))
+            if np.any(SID[index[i]:index[i+1]]>6):
+                dataOut.QFG.append(1)
+            else:
+                dataOut.QFG.append(0)
+            if unique==1:
+                dataOut.QFT.append(3)
+                dataOut.QFS.append(3)
+            elif unique<=5:
+                dataOut.QFT.append(2)
+                dataOut.QFS.append(3)
+            elif unique<15:
+                dataOut.QFT.append(1)
+                dataOut.QFS.append(3)
+            elif unique>=15:
+                dataOut.QFT.append(0)
+                dataOut.QFS.append(0)
+        
+        dataOut.QFT = np.array(dataOut.QFT)
+        dataOut.QFS = np.array(dataOut.QFS)
+        dataOut.QFG = np.array(dataOut.QFG)
+        ######### QUALITY FLAGS ############
         
         # Get median data of each month
         avgDates=np.array([np.median(t2[index[i]:index[i+1]]) for i in range(len(index)-1)])

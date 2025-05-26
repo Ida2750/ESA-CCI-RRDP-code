@@ -107,7 +107,7 @@ def drft_files(scicex_class, dir_data, ifile):
                         dates[1] = '0' + dates[1]
                     dates = dates[0]+dates[1]
                     dateEnd = dt.datetime.strptime(dates,"%d%m%y%H%M%S")
-                    print(dateEnd)
+                    #print(dateEnd)
             try:
                 if float(line.strip()) and marker==0:
                     marker=1
@@ -163,8 +163,8 @@ def drft_files(scicex_class, dir_data, ifile):
         # if lon<-180:
         #     lon = lon+360
         assert np.round(latitude[-1],1),np.round(longitude[-1],1) == (latEnd, lonEnd)
-        print('starting lat, lon', latitude[0],longitude[0],latBeg, lonBeg)
-        print('ending lat, lon', latitude[-1],longitude[-1],latEnd, lonEnd)
+        #print('starting lat, lon', latitude[0],longitude[0],latBeg, lonBeg)
+        #print('ending lat, lon', latitude[-1],longitude[-1],latEnd, lonEnd)
         
         longitude = [l if l<=180 else l-360 for l in longitude]
     
@@ -268,14 +268,14 @@ def initial_bearing(pointA, pointB):
     
     dl = math.radians(pointB[1] - pointA[1])
     X = math.cos(lat2)*math.sin(dl)
-    print(X)
+    #print(X)
     
     Y = math.cos(lat1)*math.sin(lat2)-math.sin(lat1)*math.sin(lat2)*math.cos(dl)
 
     initial_bearing = math.atan2(X, Y)
     
     bearing = (np.rad2deg(initial_bearing) + 360) % 360
-    print(bearing)
+    #print(bearing)
 
     return np.deg2rad(bearing)
 
@@ -298,14 +298,14 @@ def calc_bearing(lat1, long1, lat2, long2):
   # Make sure the bearing is positive
   bearing = (bearing + 360) % 360
   
-  return np.deg2rad(bearing)
+  return bearing #np.deg2rad(bearing)
 
 def sort(directory, directories):
     combined = []
     relevant = [l for l in directories if os.path.isdir(os.path.join(directory,l))]
-    print(relevant)
+    #print(relevant)
     relevant = [l for l in relevant if bool(re.search(r'\d', l))]
-    print(relevant)
+    #print(relevant)
     # relevant = [l for l in relevant if os.path.isdir(os.path.join(directory,l))]
     
     for r in relevant:
@@ -316,7 +316,7 @@ def sort(directory, directories):
             numbers = numbers[-2:]
             numbers = '19' + numbers
         combined.append(numbers)
-    print(combined)
+    #print(combined)
     order = np.argsort(combined)
         
     return np.array(relevant)[order]
@@ -327,22 +327,22 @@ dtint = 30 # days
 gridres = 25000 # resolution of gridded product in meters
 
 campaign = 'SCICEX'
-save_directory=save_directory = os.path.dirname(os.path.dirname(os.getcwd())) + '/Final/'
-save_path_data= save_directory + 'SCICEX/final/'
+save_path_data= os.path.dirname(os.path.dirname(os.getcwd())) + '/FINAL/SCICEX/final/'
 if not os.path.exists(save_path_data):os.makedirs(save_path_data)
-ofile='ESACCIplus-SEAICE-RRDP2+-SID-SCICEX.nc'
+ofile='ESACCIplus-SEAICE-RRDP2+-SID-SCICEX-test.nc'
 ofile =os.path.join(save_path_data,ofile)
 output=open(ofile,'w')
 # Host directory of the data
-directory = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd())))) + '/RRDPp/RawData/SCICEX/data'
-saveplot = os.path.join(os.path.dirname(
-    os.path.dirname(os.getcwd())), 'Final/SCICEX/fig/')
+#directory = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd())))) + '/RRDPp/RawData/SCICEX/data'
+directory = '/dmidata/projects/cmems2/C3S/RRDPp/RawData/SCICEX/data'
+saveplot = os.path.dirname(os.path.dirname(os.getcwd())) + '/FINAL/SCICEX/fig/'
 if not os.path.exists(saveplot):os.makedirs(saveplot)
 
 # loop throguh directories
 
 directories = sort(directory, os.listdir(directory))
 count=0
+directories = ['2014NM', '2011C', '2011NH'] 
 for dirr in directories:
     try:
         dirr_check = int(re.findall('\d+', dirr)[0])
@@ -352,6 +352,7 @@ for dirr in directories:
     if os.path.isdir(os.path.join(directory,dirr)): # only enter if is directory
     #if 'scicex' in dirr or 'UK' in dirr or 'L2' in dirr or 'grayling' in dirr: #filenaming convention
         dir_data=os.path.join(directory,dirr)
+        print(dir_data)
         if 'scicex' in dirr or 'UK' in dirr or 'L2' in dirr or 'grayling' in dirr: #filenaming convention
             if 'scicex' in dirr:
                 name = dirr.replace('scicex', '19') + 'S'
@@ -371,10 +372,10 @@ for dirr in directories:
                 # check if it is a data file
                 if 'drft' in ifile and not os.path.isdir(ifile):
                     
-                    print(ifile)
+                    #print(ifile)
                     drft_files(s, dir_data, ifile)
                 elif ifile.endswith('_-uwa.series') or ifile.endswith('.Ser') or ifile.endswith('.txt') and not os.path.isdir(ifile):
-                    print(ifile)
+                    #print(ifile)
                     file=os.path.join(dir_data, ifile)
                     
                     ### OBTAIN LAT; LON AND DATE INFORMATION FROM FILE HEADER
@@ -399,7 +400,7 @@ for dirr in directories:
                                     month = re.findall(r':(\w+)', line.strip().replace(' ', ''))[0] # ending lattitude
                                     month = mtn(month)
                                 if re.search('Third of Month', line):
-                                    print('third of month')
+                                    #print('third of month')
                                     third_of_month = re.findall('[0-9]+',line)[0] # starting longitude
                                     day = third_of_mtn(third_of_month)
                                     s.third_of_month = third_of_month
@@ -485,7 +486,7 @@ for dirr in directories:
                     if lon<-180:
                         lon = lon+360
                     assert np.round(lat,1),np.round(lon,1) == (latEnd, lonEnd)
-                    print(np.round(lat,1),np.round(lon,1))
+                    #print(np.round(lat,1),np.round(lon,1))
                     # print('ending lat, lon', lat,lon,latEnd, lonEnd)
 
                     """ Increment time with 1 second to assure that Easegrid2 accepts the individual datapoints 
@@ -507,6 +508,20 @@ for dirr in directories:
                     s.lat.append(latitude)
                     s.lon.append(longitude)
                     s.SID.append(SID)
+
+                    # Filter out NaNs
+                    #SID_clean = SID[np.isfinite(SID)]
+
+                    # Plot
+                    plt.figure(figsize=(8, 5))
+                    plt.hist(SID, bins=1000, edgecolor='black', color='skyblue')
+                    plt.xlabel('Sea Ice Draft (m)')
+                    plt.ylabel('Frequency')
+                    plt.title('Distribution of Sea Ice Draft (SID)')
+                    plt.grid(True, linestyle='--', alpha=0.5)
+                    plt.tight_layout()
+                    plt.xlim(0,8)
+                    plt.savefig(f'test_{ifile}.png')
                     s.date.append(t)
                     # s.obsID.append([dirr for i in range(len(latitude))])
 
@@ -517,7 +532,7 @@ for dirr in directories:
                         obsID = 'SCICEX-' + ifile.split('_')[0]
                     else:
                         obsID = 'SCICEX-' + ifile.split('-')[0] + '-' + ifile.split('-')[1].replace('_', '')
-                    print(ifile)
+                    #print(ifile)
 
 
         """ -------------------------------------------- """
@@ -532,6 +547,11 @@ for dirr in directories:
             latitude = np.concatenate((s.lat))
             longitude = np.concatenate((s.lon))
             SID = np.concatenate((s.SID))
+            
+            print(np.nanmean(SID))
+            print(np.nanmedian(SID))
+    
+
             t = np.concatenate((s.date))
             # obsID = np.concatenate((s.obsID))
             
@@ -543,12 +563,13 @@ for dirr in directories:
             # set non existing data to nan
             SID = np.array(SID)
             SID[SID==-99999.0] = np.nan
-    
-        
             # Add bias
             SID = SID - 0.29 # 29 cm positive bias when compared to true
+            SID[SID>8] = np.nan
+            SID[SID<0] = np.nan
+
             # Define uncertainty
-            SID_Unc = [2*0.25 for num in SID] # 25*2 cm approximate uncertainty
+            SID_Unc = np.array([2*0.25 for num in SID]) # 25*2 cm approximate uncertainty
     
             # define grid
             G = EASEgrid.Gridded()
@@ -556,26 +577,27 @@ for dirr in directories:
             G.CreateGrids(gridres)
             (index_i,index_j) = G.LatLonToIdx(latitude,longitude)
     
-            plt.figure(figsize=(6,6))
-            ax = plt.axes(projection=ccrs.NorthPolarStereo())
-            ax.coastlines()
-            ax.set_extent([-180,180,65,90],ccrs.PlateCarree())
-            # ax.add_feature(cfeature.OCEAN)        
-            ax.add_feature(cfeature.LAND)
-            ax.gridlines()
-            plt.title('Submarine cruise: ' + str(t[0].date()) +  ' - ' + str(t[-1].date()))
+            # plt.figure(figsize=(6,6))
+            # ax = plt.axes(projection=ccrs.NorthPolarStereo())
+            # ax.coastlines()
+            # ax.set_extent([-180,180,65,90],ccrs.PlateCarree())
+            # # ax.add_feature(cfeature.OCEAN)        
+            # ax.add_feature(cfeature.LAND)
+            # ax.gridlines()
+            # plt.title('Submarine cruise: ' + str(t[0].date()) +  ' - ' + str(t[-1].date()))
     
-            plot=plt.scatter(longitude, latitude,
-                      s=10, c='k',alpha=0.5,
-                      transform=ccrs.PlateCarree(),)
-            plt.savefig(os.path.dirname(os.path.dirname(os.getcwd())) + '/FINAL/SCICEX/fig/' + s.obsID + '.png')
-            plt.show()
+            # plot=plt.scatter(longitude, latitude,
+            #           s=10, c='k',alpha=0.5,
+            #           transform=ccrs.PlateCarree(),)
+            # #plt.ylim(0,10)
+            # plt.savefig(os.path.dirname(os.path.dirname(os.getcwd())) + '/FINAL/SCICEX/fig/' + s.obsID + '.png')
+            # plt.show()
         
         
             
             # Takes the time for each grid cell into account and calculate averages
             (avgSID, stdSID, lnSID, uncSID, lat, lon, time, avgSIT, stdSIT, lnSIT, uncSIT, avgFRB,
-                 stdFRB, lnFRB, uncFRB, var1, var2) = G.GridData(
+                 stdFRB, lnFRB, uncFRB, var1, var2, dataOut.QFT, dataOut.QFS, dataOut.QFG) = G.GridData(
                 dtint, latitude, longitude, t, SD=SID, SD_unc=SID_Unc)
 
             
@@ -597,7 +619,7 @@ for dirr in directories:
 
             #Change names to correct format names
             dataOut.lat_final = lat
-            print(lat)
+            #print(lat)
             dataOut.lon_final = lon
             for ll in range(np.size(time,0)):
                 dataOut.date_final = np.append(dataOut.date_final,dt.datetime.strftime(time[ll],"%Y-%m-%dT%H:%M:%S"))

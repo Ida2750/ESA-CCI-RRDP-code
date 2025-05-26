@@ -45,14 +45,15 @@ ofile = os.path.dirname(os.path.dirname(os.getcwd(
 ))) + '/FINAL/NPI/final/ESACCIplus-SEAICE-RRDP2+-SID-NPI.nc'
 
 
-directory = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.getcwd())))) + '/RRDPp/RawData/NPI_ULS_FS/ULS_ncfiles_incl_README/'  
+directory = os.path.dirname(os.path.dirname(os.path.dirname(
+    os.getcwd()))) + '/RRDPp/RawData/NPI_ULS_FS/ULS_ncfiles_incl_README/'  
 
 import xarray as xr
 
 count=0
 for filename in os.listdir(directory):
     if filename.endswith(".nc"):
+        print(filename)
         # print(filename)
         fn=directory+filename
         #ds = xr.open_dataset(fn)
@@ -76,25 +77,39 @@ for filename in os.listdir(directory):
         dataOut.lon_final = np.concatenate([ds['LONGITUDE'][:] for t in time])
         dataOut.SID_final = ds['DRAFT'][:][np.argsort(time,axis=0)]
         
-        dataOut.SID_ln = [np.nan for s in dataOut.SID_final]
+        #dataOut.SID_ln = [np.nan for s in dataOut.SID_final]
         dataOut.SID_std = [np.nan for s in dataOut.SID_final]
         
         entries_usefull=ds['DATA_COVERAGE'][:]
         entries_usefull=entries_usefull[0][np.argsort(time,axis=0)] #decimal
         
-        #print(entries_usefull)
           
         date0=dt.date(1950,1,1)
         dates=[date0+td(seconds=t) for t in time[np.argsort(time,axis=0)]] #list comprehension more efficient memory wise
         #date0 = []
         for date in dates:
-            if date.year < 2005:
-                dataOut.SID_unc = np.append(dataOut.SID_unc, 0.20)  # 20 cm prior to 2005
-            elif date.year >= 2005:
-                dataOut.SID_unc = np.append(dataOut.SID_unc, 0.10)  # 10 cm post 2005
+            # source: https://static-content.springer.com/esm/art%3A10.1038%2Fs41467-022-29470-7/MediaObjects/41467_2022_29470_MOESM1_ESM.pdf
+            if 'ES300' in filename:
+                dataOut.SID_ln = np.append(dataOut.SID_ln, 1e4)
+                if date.year < 1992:
+                    dataOut.SID_unc = np.append(dataOut.SID_unc, 2.7e-3)
 
-        dataOut.pp_flag = [0]*len(dataOut.SID_final)
+                elif date.year < 2003 and date.year>=1992:
+                    dataOut.SID_unc = np.append(dataOut.SID_unc, 1.9e-3)
+
+                elif date.year < 2007:
+                    dataOut.SID_unc = np.append(dataOut.SID_unc, 1.3e-3)
+                
+
+            elif 'IPS' in filename: # newer instuments used IPS4 or IPS5
+                dataOut.SID_unc = np.append(dataOut.SID_unc, 0.08e-3)  # 10 cm post 2005
+                dataOut.SID_ln = np.append(dataOut.SID_ln, 1e6)
+
+        dataOut.pp_flag = [1]*len(dataOut.SID_final)
         dataOut.unc_flag = [1]*len(dataOut.SID_final)
+        dataOut.QFT = [np.nan]*len(dataOut.SID_final)
+        dataOut.QFS = [np.nan]*len(dataOut.SID_final)
+        dataOut.QFG = [np.nan]*len(dataOut.SID_final)
                 
         # Correlate NPI data with Warren snow depth and snow density
         for ll in range(np.size(dataOut.SID_final, 0)):
@@ -123,7 +138,7 @@ for filename in os.listdir(directory):
             subset = dataOut.Create_NC_file(ofile, primary='SID')
             df = Functions.Append_to_NC(df, subset)
         else:
-            df = dataOut.Create_NC_file(ofile, primary='SID', datasource='Monthly sea ice thickness distribution in Fram Strait. Norwegian Polar Institue. https://doi.org/10.21334/npolar.2022.b94cb848', key_variables='Sea Ice Draft')
+            df = dataOut.Create_NC_file(ofile, primary='SID', datasource='Monthly mean sea ice draft from the Fram Strait Arctic Outflow Observatory since 1990, doi: 10.21334/npolar.2021.5b717274', key_variables='Sea Ice Draft', comment='The number of observations in SID_ln is an approximated number, see section 3.2 in CCI SIT RRDP associated publication')
             
 
 # Sort final data based on date

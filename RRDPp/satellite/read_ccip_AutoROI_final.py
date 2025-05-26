@@ -19,7 +19,7 @@ import datetime as dt
 
 
 class collocation:
-  def __init__(self,campaign, obsfile, ifile, ofile, count, i=0):
+  def __init__(self,campaign, obsfile, ifile, ofile, count, save_path, i=0):
     """
 
     Parameters
@@ -42,7 +42,8 @@ class collocation:
     None.
 
     """
-    self.save_path = os.path.dirname(os.getcwd()) + '/satellite/Satellite_subsets/' + campaign
+    self.save_path = save_path  #+ '/satellite/Satellite_subsets/' + campaign
+    #print(self.save_path)
     self.campaign = campaign
     self.CCIpFile = Dataset(ifile,'r')
     self.lat = self.CCIpFile.variables['lat'][:].flatten()

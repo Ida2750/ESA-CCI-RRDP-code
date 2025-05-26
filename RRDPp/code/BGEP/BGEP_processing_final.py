@@ -29,29 +29,34 @@ import numpy as np
 import pandas as pd
 
 # -- Proprietary modules -- #
-from Warren import SnowDepth, SWE
 sys.path.append(os.path.dirname(os.getcwd()))
+from Warren import SnowDepth, SWE
 import Functions
+
+def robust_std(data):
+    median = np.nanmedian(data)
+    mad = np.nanmedian(np.abs(data - median))
+    return mad * 1.4826  # scaling factor for normal distribution
 
 dtint = 30  # days
 gridres = 25000  # m
 
-directory = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd())))) + '/RRDPp/RawData/BPR_ULS_BGEP'
+#directory = os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd()))) + '/RRDPp/RawData/BPR_ULS_BGEP'
+directory = '/dmidata/projects/cmems2/C3S/RRDPp/RawData/BPR_ULS_BGEP'
 saveplot = os.path.dirname(os.path.dirname(os.getcwd())) + '/FINAL/BGEP/fig/'
 save_path_data= os.path.dirname(os.path.dirname(os.getcwd())) + '/FINAL/BGEP/final/'
-ofile = os.path.dirname(os.path.dirname(os.getcwd())) +'/FINAL/BGEP/final/ESACCIplus-SEAICE-RRDP2+-SID-BGEP.nc'
+ofile = os.path.dirname(os.path.dirname(os.getcwd())) +'/FINAL/BGEP/final/ESACCIplus-SEAICE-RRDP2+-SID-BGEP-last.nc'
 if not os.path.exists(save_path_data):os.makedirs(save_path_data)
 if not os.path.exists(saveplot):os.makedirs(saveplot)
 
 files = glob.glob(save_path_data+'*')
-# for f in files:
-#     os.remove(f)
 
 lat=0
 lon=0
 
 count = 0
-for dir in os.listdir(directory):
+datalen = 0
+for dir in ['2017-2021', '2021-2022', '2022-2023']: #sorted(os.listdir(directory)):
     print(dir)
     dir_data=os.path.join(directory, dir)
     if os.path.isdir(dir_data) and not dir_data.endswith('no_use'):        
@@ -63,28 +68,56 @@ for dir in os.listdir(directory):
             dataOut.pp_flag = 0
             with open(file,'rb') as myFile:
                 for num, line in enumerate(myFile, 1):
-                    print(line.strip())
                     if num == 1:
                         line = line.strip()
                         line = line.split()
                         print(line)
-                        dataOut.obsID = 'BGEP_Mooring' + line[3].decode('utf8')[:-1]
-                        dataOut.lat = float(line[4].decode('utf8')) + float(line[5].decode('utf8'))/60 # convert to deicmal degrees
-                        if line[9].decode('utf8') == 'W':
-                            dataOut.lon = - float(line[7].decode('utf8')) - float(line[8].decode('utf8'))/60
-                        elif line[9].decode('utf8') == 'E':
-                            dataOut.lon = float(line[7].decode('utf8')) + float(line[8].decode('utf8'))/60
-                        break
+                        if dir=='2022-2023': # different format
+                            try:
+                                dataOut.obsID = 'BGEP_Mooring' + 'B'
+                                dataOut.lat = float(line[3].decode('utf8')) + float(line[4].decode('utf8'))/60 # convert to deicmal degrees
+                                if line[8].decode('utf8') == 'W':
+                                    dataOut.lon = - float(line[6].decode('utf8')) - float(line[7].decode('utf8'))/60
+                                elif line[8].decode('utf8') == 'E':
+                                    dataOut.lon = float(line[6].decode('utf8')) + float(line[7].decode('utf8'))/60
+                                break
+                            except:
+                                dataOut.obsID = 'BGEP_Mooring' + line[3].decode('utf8')[:-1]
+                                dataOut.lat = float(line[4].decode('utf8')) + float(line[5].decode('utf8'))/60 # convert to deicmal degrees
+                                if line[9].decode('utf8') == 'W':
+                                    dataOut.lon = - float(line[7].decode('utf8')) - float(line[8].decode('utf8'))/60
+                                elif line[9].decode('utf8') == 'E':
+                                    dataOut.lon = float(line[7].decode('utf8')) + float(line[8].decode('utf8'))/60
+                                break  
+                        else: # all other folders
+                            dataOut.obsID = 'BGEP_Mooring' + line[3].decode('utf8')[:-1]
+                            dataOut.lat = float(line[4].decode('utf8')) + float(line[5].decode('utf8'))/60 # convert to deicmal degrees
+                            if line[9].decode('utf8') == 'W':
+                                dataOut.lon = - float(line[7].decode('utf8')) - float(line[8].decode('utf8'))/60
+                            elif line[9].decode('utf8') == 'E':
+                                dataOut.lon = float(line[7].decode('utf8')) + float(line[8].decode('utf8'))/60
+                            break
  
-            # Reads observation data from ASCII-file
-            dff = pd.read_table(file, skiprows=1, sep="\s+", dtype = 'float32', converters = {'%date': str})
+
                         
             # Load data
-            dates = dff['%date'].to_numpy()
-            time = dff['time(UTC)'].to_numpy() #UTC - duration of each time used on each measurement
+            if dir == '2022-2023': # different format
+                # Reads observation data from ASCII-file
+                dff = pd.read_table(file, skiprows=2, names=['date', 'UTC', 'draft(m)'],sep="\s+", dtype = 'float32', converters = {'date': str})
+                dates = dff['date'].to_numpy()
+                time = dff['UTC'].to_numpy() #UTC - duration of each time used on each measurement
+            else:
+                # Reads observation data from ASCII-file
+                dff = pd.read_table(file, skiprows=1, sep="\s+", dtype = 'float32', converters = {'%date': str})
+                dates = dff['%date'].to_numpy()
+                time = dff['time(UTC)'].to_numpy() #UTC - duration of each time used on each measurement
+            
             SID = dff['draft(m)'].to_numpy() #m
+            SID[SID>8] = np.nan
+            SID[SID<0] = np.nan
+            datalen += len(SID[np.isfinite(SID)])
             SID_Unc = np.array([0.10 for sid in SID]) # uncertainty of 10 cm approx.
-            print('Getting months')
+            #print('Getting months')
             
             months = [int(date[4:6]) for date in dates]
             days = [int(date[6:]) for date in dates]
@@ -93,10 +126,43 @@ for dir in os.listdir(directory):
             time_in = [dt.datetime(int(y[:4]),int(m),int(d)) for y,m,d in zip(dates, months, days)]
             
             # Avg_draft
-            dataOut.SID_final = np.array([np.mean(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
-            dataOut.SID_std = np.array([np.std(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
-            dataOut.SID_ln = np.array([len(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+            #dataOut.SID_final = np.array([np.nanmean(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+            #dataOut.SID_std = np.array([np.nanstd(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+            dataOut.SID_final=np.array([np.nanmedian(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+            dataOut.SID_std = np.array([robust_std(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+
+            dataOut.SID_ln = np.array([len(SID[np.isfinite(SID)][index[i]:index[i+1]]) for i in range(len(index)-1)])
             
+            ######### QUALITY FLAGS ############
+            dataOut.QFT = [] # temporal
+            dataOut.QFS = [] # spatial
+            dataOut.QFG = [] # global threshold
+
+            for i in range(len(index)-1):
+                # find number of days
+                unique = len(np.unique(days[index[i]:index[i+1]]))
+                if np.any(SID[index[i]:index[i+1]]>8):
+                    dataOut.QFG.append(1)
+                else:
+                    dataOut.QFG.append(0)
+                if unique==1:
+                    dataOut.QFT.append(3)
+                    dataOut.QFS.append(3)
+                elif unique<=5:
+                    dataOut.QFT.append(2)
+                    dataOut.QFS.append(3)
+                elif unique<15:
+                    dataOut.QFT.append(1)
+                    dataOut.QFS.append(3)
+                elif unique>=15:
+                    dataOut.QFT.append(0)
+                    dataOut.QFS.append(0)
+            
+            dataOut.QFT = np.array(dataOut.QFT)
+            dataOut.QFS = np.array(dataOut.QFS)
+            dataOut.QFG = np.array(dataOut.QFG)
+            ######### QUALITY FLAGS ############
+
             uncSID = []
             for i in range(len(index)-1): # calculate uncertainty 
                 start = index[i]
@@ -136,7 +202,7 @@ for dir in os.listdir(directory):
 
             dataOut.time = [np.datetime64(d) for d in dataOut.date_final]
             dataOut.pp_flag = [dataOut.pp_flag]*len(dataOut.SID_final)
-            dataOut.unc_flag = [dataOut.unc_flag]*len(dataOut.SID_final)
+            dataOut.unc_flag = [2]*len(dataOut.SID_final)
             dataOut.obsID = [dataOut.obsID]*len(dataOut.SID_final)
             
             # fill empty arrays with NaN values
@@ -149,5 +215,6 @@ for dir in os.listdir(directory):
                 df = dataOut.Create_NC_file(ofile, primary='SID', datasource='Beaufort Gyre Exploration Project, Mooring Data: https://www2.whoi.edu/site/beaufortgyre/data/mooring-data/', key_variables='Sea Ice Draft')
                 
 
+print(datalen)
 # Sort final data based on date
 Functions.save_NC_file(df, ofile, primary='SID')

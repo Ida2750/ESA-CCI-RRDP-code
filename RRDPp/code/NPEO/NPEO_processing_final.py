@@ -106,12 +106,17 @@ def Get_lat_lon(file):
 
     return lat, lon, header
 
+def robust_std(data):
+    median = np.nanmedian(data)
+    mad = np.nanmedian(np.abs(data - median))
+    return mad * 1.4826  # scaling factor for normal distribution
 
 dtint = 30  # days
 gridres = 25000  # m
 
-directory = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.getcwd())))) + '/RRDPp/RawData/NPEO/data'
+# directory = os.path.dirname(os.path.dirname(os.path.dirname(
+#     os.getcwd()))) + '/RRDPp/RawData/NPEO/data'
+directory = '/dmidata/projects/cmems2/C3S/RRDPp/RawData/NPEO/data'
 
 # saving locations
 save_path_data = os.path.dirname(os.path.dirname(
@@ -162,6 +167,8 @@ for dir in os.listdir(directory):
             SID_Unc = np.array([0.05 for sid in SID])
             # set non existing data to nan
             SID[SID == -999.000] = np.nan
+            SID[SID < 0] = np.nan
+            SID[SID > 8] = np.nan
 
             t = np.array([(date-dt.datetime(1970, 1, 1)).total_seconds()
                          for date in dates])
@@ -172,11 +179,14 @@ for dir in os.listdir(directory):
             # add start and end indexes on month
             index = np.insert(np.append(mondiff, len(months)-1), 0, 0)
 
-            dataOut.SID_final = np.array(
-                [np.nanmean(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+            # dataOut.SID_final = np.array(
+            #     [np.nanmean(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+            # dataOut.SID_std = np.array(
+            #     [np.nanstd(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+            dataOut.SID_final=np.array([np.nanmedian(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+            #dataOut.SID_std=np.array([np.nanstd(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+            dataOut.SID_std = np.array([robust_std(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
             dataOut.unc_flag = [3 if sid>2 else 2 for sid in dataOut.SID_final]
-            dataOut.SID_std = np.array(
-                [np.nanstd(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
             dataOut.SID_ln = np.array(
                 [len(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
 
@@ -189,6 +199,37 @@ for dir in os.listdir(directory):
             #find median date within month (tells about which part of the month majority measurements are from)
             avgDates = np.array([np.median(t[index[i]:index[i+1]])
                                 for i in range(len(index)-1)])
+
+            ######### QUALITY FLAGS ############
+            dataOut.QFT = [] # temporal
+            dataOut.QFS = [] # spatial
+            dataOut.QFG = [] # global threshold
+
+            days = [time.day for time in dates]
+            for i in range(len(index)-1):
+                # find number of days
+                unique = len(np.unique(days[index[i]:index[i+1]]))
+                if np.any(SID[index[i]:index[i+1]]>6):
+                    dataOut.QFG.append(1)
+                else:
+                    dataOut.QFG.append(0)
+                if unique==1:
+                    dataOut.QFT.append(3)
+                    dataOut.QFS.append(3)
+                elif unique<=5:
+                    dataOut.QFT.append(2)
+                    dataOut.QFS.append(3)
+                elif unique<15:
+                    dataOut.QFT.append(1)
+                    dataOut.QFS.append(3)
+                elif unique>=15:
+                    dataOut.QFT.append(0)
+                    dataOut.QFS.append(0)
+            
+            dataOut.QFT = np.array(dataOut.QFT)
+            dataOut.QFS = np.array(dataOut.QFS)
+            dataOut.QFG = np.array(dataOut.QFG)
+            ######### QUALITY FLAGS ############  
 
             #change date to right format
             dates_final = np.array(
