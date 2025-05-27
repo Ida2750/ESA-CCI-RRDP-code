@@ -83,7 +83,7 @@ for filename in filenames:
     SID = data['SEA_ICE_DRAFT_MEDIAN'].to_numpy()  # meters
 
     # uncertainty of 5 cm approx.
-    SID_Unc = np.array([0.05 for sid in SID])
+    SID_Unc = np.array([np.nan for sid in SID])
 
     # set negative to nan
     SID[SID<0] = np.nan

@@ -3,16 +3,7 @@
 Created on Mon Nov 28 15:31:46 2022
 
 @author: Ida Olsen
-"""
 
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Jan 21 18:31:18 2021
-
-@author: s174020
-
-Make histograms of data to check distribution.
 """
 
 # Built-in packages
@@ -25,8 +16,12 @@ sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), 'plo
 
 # Third-party packages
 import numpy as np
+import io
+from PIL import Image
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 from sklearn.metrics import r2_score, mean_squared_error
 from scipy.stats import pearsonr
 import scipy.odr as spodr
@@ -150,15 +145,16 @@ def Histograms_time(d_SIT, d_SD, d_SIF, d_SID):
                          xlabel='Months',  # X-axis label
                          ylabel='Number of observations')  # Y-axis label
     
-    plt.show()  # Display the plot
+    #plt.show()  # Display the plot
     
 #%% Scatterplots
-def scatter(self):
+def scatter(self, save=False):
+    import matplotlib.pyplot as plt
+
     # Select the observed and satellite variables based on the 'var' attribute
     if self.var == 'SID':
         obsVar = self.obsSID
         satVar = self.satSID
-        # Calculate observation and satellite errors
         obsErr = [s + y for s, y, n in zip(self.obsSIDunc, self.obsSIDstd, self.name)]
         satErr = [s + y for s, y, n in zip(self.satSIDunc, self.satSIDstd, self.name)]
     elif self.var == 'SIT':
@@ -176,105 +172,81 @@ def scatter(self):
         satVar = self.satSIF
         obsErr = [s + y for s, y in zip(self.obsSIFunc, self.obsSIFstd)]
         satErr = [s + y for s, y in zip(self.satSIFunc, self.satSIFstd)]
-    
-    # Initialize lists to store non-NaN observations and errors
-    obsvar = []
-    satvar = []
-    obserr = []
-    saterr = []
-    
-    # Create a figure for the scatter plot
-    fig = plt.figure(figsize=(30, 30))
-    plt.grid(alpha=0.5, linewidth=2)
-    
-    # Print the variable being processed
+
+    obsvar, satvar, obserr, saterr = [], [], [], []
+    fig, ax = plt.subplots(figsize=(35, 35))
+    ax.grid(alpha=0.5, linewidth=2)
+
     print(f'variable : {self.var}')
     print(f'***********************')
-    
-    # Loop through each observation variable and satellite variable
+
     for i, name in zip(range(len(obsVar)), self.name):
-        # Optional: Skip specific satellite names (commented out)
-        # if self.name[i] == 'OIB' and self.sat == 'CS2':
-        #     obsVar[i] = obsVar[i][::5]
-        #     satVar[i] = satVar[i][::5]
-        
-        # Only plot for NH data
         if self.name[i] != 'ASPeCt' and 'SH' not in self.name[i] and 'AWI-ULS' not in self.name[i]:
-            # Create a scatter plot for observed vs. satellite values
-            plt.scatter(obsVar[i], satVar[i], color=self.c[i], s=40, alpha=0.4)
-            
-            # Calculate the Pearson correlation coefficient
+            ax.scatter(obsVar[i], satVar[i], color=self.c[i], s=40, alpha=0.4)
             corr = np.round(pearsonr(obsVar[i][~np.isnan(satVar[i])], satVar[i][~np.isnan(satVar[i])]), 2)
             print(self.name[i])
-            
-            # Fit a linear model to the observed and satellite data
-            w, b = odr_fit(obsVar[i][~np.isnan(satVar[i])], satVar[i][~np.isnan(satVar[i])], 
+            w, b = odr_fit(obsVar[i][~np.isnan(satVar[i])], satVar[i][~np.isnan(satVar[i])],
                            sx=obsErr[i][~np.isnan(satVar[i])], sy=satErr[i][~np.isnan(satVar[i])])
-            
-            # Calculate and print the RMSE of the fit
-            print('RMSE', np.round(np.sqrt(mean_squared_error(satVar[i][~np.isnan(satVar[i])], 
-                             (obsVar[i][~np.isnan(satVar[i])]*w + b))), 2))
-            
-            # Plot the fitted line on the scatter plot
-            plt.plot(range(-1, 8), range(-1, 8)*w + b, color=self.c[i], linewidth=2, 
-                     label=f'{name}, R:{corr[0]}')
-            
-            # Print the R² value of the fit
-            print('R2', np.round(r2_score(satVar[i][~np.isnan(satVar[i])], 
-                                             (obsVar[i][~np.isnan(satVar[i])]*w + b)), 2))
+            print('RMSE', np.round(np.sqrt(mean_squared_error(satVar[i][~np.isnan(satVar[i])],
+                                                               (obsVar[i][~np.isnan(satVar[i])]*w + b))), 2))
+            ax.plot(range(-1, 8), [v*w + b for v in range(-1, 8)], color=self.c[i], linewidth=2,
+                    label=f'{name}, R:{corr[0]}')
+            print('R2', np.round(r2_score(satVar[i][~np.isnan(satVar[i])],
+                                          (obsVar[i][~np.isnan(satVar[i])]*w + b)), 2))
             print(f' wb: {w} {b}')
             print(f'len: {len(satVar[i][~np.isnan(satVar[i])])}')
-        
-        # Collect non-NaN observations and errors for overall analysis
-        if self.name[i] != 'ASPeCt' and 'SH' not in self.name[i] and 'AWI-ULS' not in self.name[i]:
             obsvar.append(obsVar[i][~np.isnan(satVar[i])])
             satvar.append(satVar[i][~np.isnan(satVar[i])])
             obserr.append(obsErr[i][~np.isnan(satVar[i])])
             saterr.append(satErr[i][~np.isnan(satVar[i])])
-    
-    # Concatenate all collected data for combined analysis
+
     x = np.concatenate(obsvar)
     y = np.concatenate(satvar)
     sx = np.concatenate(obserr)
     sy = np.concatenate(saterr)
-    
-    # Calculate the Pearson correlation for the combined dataset
     corr = np.round(pearsonr(x[~np.isnan(y)], y[~np.isnan(y)]), 2)
-    
-    # Fit a linear model to the combined dataset
     w, b = odr_fit(x, y, sx, sy)
-    
-    # Plot the fitted line for the combined dataset
-    plt.plot(range(-1, 8), range(-1, 8)*w + b, color='r', label=f'Combined, R:{corr[0]}')
-    
-    # Plot the 1-to-1 line and set axes limits based on the variable type
-    if self.var == 'SIT' or self.var == 'SID':
-        plt.plot([-0.10, 8], 
-                 [-0.10, 8], c='k', label='1 to 1 line')
-        plt.xlim([-0.10, 7])
-        plt.ylim([-0.10, 7])
-    elif self.var == 'SD':
-        plt.plot([-0.1, 1], [-0.1, 1], c='k')
-        plt.xlim([-0.1, 1])
-        plt.ylim([-0.1, 1])
-    else:
-        plt.plot([-0.1, 1], [-0.1, 1], c='k')
-        plt.xlim([-0.10, 1])
-        plt.ylim([-0.10, 1])
+    ax.plot(range(-1, 8), [v*w + b for v in range(-1, 8)], color='r', label=f'Combined, R:{corr[0]}')
 
-    # Get the legend object and adjust line widths for better visibility
-    leg = plt.legend(fontsize=40, loc='upper left')
+    # Add label text based on satellite type (bottom right corner)
+    if self.sat == 'CS2':
+        ax.text(0.92, 0.05, '(b)', transform=ax.transAxes, fontsize=80, fontweight='bold', 
+                va='bottom', ha='right')
+    elif self.sat == 'ENV':
+        ax.text(0.92, 0.05, '(e)', transform=ax.transAxes, fontsize=80, fontweight='bold', 
+                va='bottom', ha='right')
+        
+    # Axis setup
+    if self.var == 'SIT':
+        ax.plot([-0.10, 8], [-0.10, 8], c='k', label='1 to 1 line')
+        ax.set_xlim([-0.10, 7])
+        ax.set_ylim([-0.10, 7])
+    elif self.var == 'SID':
+        ax.plot([-0.10, 5], [-0.10, 5], c='k', label='1 to 1 line')
+        ax.set_xlim([-0.10, 4])
+        ax.set_ylim([-0.10, 4])
+    elif self.var == 'SD':
+        ax.plot([-0.1, 1], [-0.1, 1], c='k')
+        ax.set_xlim([-0.1, 1])
+        ax.set_ylim([-0.1, 1])
+    else:
+        ax.plot([-0.1, 1], [-0.1, 1], c='k')
+        ax.set_xlim([-0.10, 1])
+        ax.set_ylim([-0.10, 1])
+
+    leg = ax.legend(fontsize=50, loc='upper left')
     for line in leg.get_lines():
         line.set_linewidth(4.0)
 
-    # Set the axis labels
-    plt.xlabel('Reference ' + self.var + ' [m]', fontsize=48)
-    plt.ylabel('Satellite ' + self.var + ' [m]', fontsize=48)
+    ax.set_xlabel('Reference ' + self.var + ' [m]', fontsize=50)
+    ax.set_ylabel('Satellite ' + self.var + ' [m]', fontsize=50)
 
-    # Save the figure
-    plt.savefig(f'scatter_{self.sat}_{self.var}.png', bbox_inches='tight')
-    plt.show()
-    plt.close()
+    if save:
+        fig.savefig(f'scatter_{self.sat}_{self.var}.png', bbox_inches='tight')
+
+    # Return the figure object for combining externally
+    return fig, ax
+
 
 #%% Get statistics
 def stats(self, sat, ofile):
@@ -388,85 +360,104 @@ def stats(self, sat, ofile):
         print(self.name)  # Print the name of the dataset again (could be redundant)
 
 #%% Histogram distribution
-def Histograms(self, sat):
-    # Define bin edges for histograms based on the selected variable type
+def Histograms(self, fig=None, axes=None):
+    # Define bin edges
     if self.var == 'SID':
         obsVar = self.obsSID
         satVar = self.satSID
-        bins = np.arange(-0.1, 3, 0.10)  # Bins for SID
+        bins = np.arange(-0.1, 3, 0.10)
     elif self.var == 'SIT':
         obsVar = self.obsSIT
         satVar = self.satSIT
-        bins = np.arange(0, 7, 0.10)  # Bins for SIT
+        bins = np.arange(0, 7, 0.10)
     elif self.var == 'SD':
         obsVar = self.obsSD
         satVar = self.satSD
-        bins = np.arange(0, 1, 0.03)  # Bins for SD
+        bins = np.arange(0, 1, 0.03)
     elif self.var == 'FRB':
         obsVar = self.obsSIF
         satVar = self.satSIF
-        bins = np.arange(-0.5, 1, 0.03)  # Bins for FRB
-        
+        bins = np.arange(-0.5, 1, 0.03)
 
+    # Create or use existing figure and axes
+    if fig is None or axes is None:
+        fig, ax1 = plt.subplots(len(obsVar), figsize=(35, 35), sharex=True)
+    else:
+        ax1 = axes
 
-    # Create subplots for histograms, sharing the x-axis
-    fig, ax1 = plt.subplots(len(obsVar), figsize=(30, 30), sharex=True)
-
-    # Loop through each observed variable to create individual histograms
     for i, name in zip(range(len(obsVar)), self.name):
-        ax1[i].set_ylabel(name, fontsize=48)  # Set y-axis label for each subplot
-        ax1[i].set_yticks([])  # Hide y-ticks for clarity
-        ax1[i].tick_params(axis="x", labelsize=48)  # Set font size for x-ticks
-        ax1[i].grid()  # Enable grid for better readability
+        threshold = 10  # Adjust this number as needed
 
-        ax2 = ax1[i].twinx()  # Create a twin y-axis for overlaying histograms
+        if len(name) > threshold and ':' in name:
+            # Split roughly in the middle at the space before the unit
+            parts = name.split(':')
+            name = parts[0] + ':\n' + ' '.join(parts[1:])
         
-        # Conditional plotting for specific datasets with additional formatting
+        ax1[i].set_ylabel(name, fontsize=50)
+        ax1[i].set_yticks([])
+        ax1[i].tick_params(axis="x", labelsize=50)
+        ax1[i].grid()
+
+        ax2 = ax1[i].twinx()
+
         if name == 'ASPeCt' or 'SH' in name or name == 'AWI-ULS':
-            # Plot histograms for observed and satellite data
-            ax2.hist(obsVar[i], bins=bins, rwidth=0.85, linewidth=4, 
+            ax2.hist(obsVar[i], bins=bins, rwidth=0.85, linewidth=4,
                      linestyle='-', edgecolor='k', alpha=0.7, stacked=True)
-            ax2.hist(satVar[i], bins=bins, rwidth=0.85, linewidth=4, 
+            ax2.hist(satVar[i], bins=bins, rwidth=0.85, linewidth=4,
                      linestyle='-', edgecolor='k', alpha=0.7)
         else:
-            ax2.hist(obsVar[i], bins=bins, rwidth=0.85, alpha=0.7)  # Normal histogram for observed data
-            ax2.hist(satVar[i], bins=bins, rwidth=0.85, alpha=0.7)  # Normal histogram for satellite data
-        
-        ax2.tick_params(axis="y", labelsize=48)  # Set font size for y-ticks
-        
-        # Draw vertical lines indicating the means of observed and satellite data
-        ax2.axvline(x=np.nanmean(obsVar[i]), c='r', linewidth=8, label='obs mean')  # Observed mean
-        ax2.axvline(x=np.nanmean(satVar[i]), c='k', linewidth=8, label='sat mean')  # Satellite mean
-        ax2.grid()  # Enable grid on the twin axis
+            ax2.hist(obsVar[i], bins=bins, rwidth=0.85, alpha=0.7)
+            ax2.hist(satVar[i], bins=bins, rwidth=0.85, alpha=0.7)
 
-    # Set x-axis label for the bottom subplot
-    ax1[i].set_xlabel(f'{self.var} [m]', fontsize=48)
+        ax2.tick_params(axis="y", labelsize=50)
+        ax2.axvline(x=np.nanmean(obsVar[i]), c='r', linewidth=8, label='obs mean')
+        ax2.axvline(x=np.nanmean(satVar[i]), c='k', linewidth=8, label='sat mean')
+        ax2.grid()
 
-    # Adjust the satellite name for FRB variable
+    # Label for x-axis
+    ax1[-1].set_xlabel(f'{self.var} [m]', fontsize=50)
+
+    # Adjust satellite label for FRB
     if self.var == 'FRB':
-        sat = 'ENV & CS2'
+        sat_label = 'ENV & CS2'
     else:
-        sat = sat  # Retain the provided satellite name
-    
-    # Create legend elements for the plot
+        sat_label = self.sat
+
+    # Legend definition (not added here to avoid duplication in combined plots)
     legend_elements = [
         mpatches.Patch(color='tab:blue', alpha=0.7, label='obs ' + self.var + ' [m]'),
-        mpatches.Patch(color='tab:orange', alpha=0.7, label=sat + ' ' + self.var + ' [m]'),
-        mpatches.Patch(facecolor='tab:blue', alpha=0.7, edgecolor='k', linewidth=1.2, 
+        mpatches.Patch(color='tab:orange', alpha=0.7, label=sat_label + ' ' + self.var + ' [m]'),
+        mpatches.Patch(facecolor='tab:blue', alpha=0.7, edgecolor='k', linewidth=1.2,
                        linestyle='-', label='obs SH. ' + self.var + ' [m]'),
-        mpatches.Patch(facecolor='tab:orange', alpha=0.7, edgecolor='k', linewidth=1.2, 
-                       linestyle='-', label=sat + ' SH. ' + self.var + ' [m]'),
+        mpatches.Patch(facecolor='tab:orange', alpha=0.7, edgecolor='k', linewidth=1.2,
+                       linestyle='-', label=sat_label + ' SH. ' + self.var + ' [m]'),
         mlines.Line2D([], [], color='r', linewidth=3, label='obs mean [m]'),
         mlines.Line2D([], [], color='k', linewidth=3, label='sat mean [m]')
     ]
-    
-    # Add a super label to the figure
-    fig.supylabel('count of observations in each bin', fontsize=60, position=(0.97, 0.5))
-    
-    # Save the figure to a PNG file
-    plt.savefig(self.var + '_hist_' + sat + '.png', bbox_inches='tight')
-    
-    plt.show()  # Display the plot
+
+    # Super y-label
+    fig.supylabel('count of observations in each bin', fontsize=65, position=(0.97, 0.5))
+
+    # Add bottom-right subplot label
+    label = None
+    if self.sat == 'CS2':
+        label = '(c)'
+    elif self.sat == 'ENV':
+        label = '(f)'
+
+    if label:
+        ax1[-1].text(0.92, 0.05, label, transform=ax1[-1].transAxes,
+                     fontsize=80, fontweight='bold', ha='right', va='bottom')
+
+    # Save if standalone
+    if fig is None or axes is None:
+        plt.savefig(f'{self.var}_hist_{self.sat}.png', bbox_inches='tight')
+        print(f'{self.var}_hist_{self.sat}.png')
+        #plt.show()
+        plt.close()
+
+    return fig, ax1
+
 #%% Data class
 class Data:
     # This class is designed to read and organize satellite data, 
@@ -592,15 +583,21 @@ def Get_name(ifile):
     name = name.replace("IDCS4", "")
     name = name.replace(sat, "")
     name = name.replace("ANTARCTIC", "-SH") 
-    name = name.replace("BSH", "B-SH") 
+    name = name.replace("AWISHSH", "AWI:SH") 
     name = name.replace("sorted", "") 
     name = name.replace("ULS", "-ULS") 
     name = name.replace("ENV", "-ENV")
-    name = name.replace("IMB", "IMB-CRREL")
+    name = name.replace("CSIM", "C: SIM")
+    name = name.replace("ASPeCtSH", "ASPeCt")
+    name = name.replace("Nansenlegacy", "Nansen_legacy")
+    if 'SIMBA' not in name:
+        name = name.replace("IMB", "IMB-CRREL")
     name = name.replace("NPI", "NPI-FS")
+    name = name.replace("NH", "")
     if 'ULS' not in name:
         name = name.replace("AWI", "-AWI")
-        
+        name = name.replace("AWIFRB", "AWI-FRB")
+    name = name.replace("AEMcomb", "AEM: (AWI + MOSAIC)")
     return name
 
 #%% assign color to name
@@ -617,7 +614,7 @@ def Get_color(name):
         #    c=colors[5] # 'orange'
         #else:
         c=colors[1] # 'orange'
-    elif 'IMB' in name:
+    elif 'IMB' in name and 'SIMBA' not in name:
         name = name.replace('B', 'B-CRREL')
         c="#832db6" # purple
     elif 'AEM' in name:
@@ -639,100 +636,151 @@ def Get_color(name):
     elif 'ULS' in name:
         c='k' # black
     else:
-        c=colors[0]
+        c='green'
         
     return c
 
-def Append_data(d_SID, d_SIT, d_SD, d_SIF, ifile, name, c,directory):
+def Append_data(d_SID, d_SIT, d_SD, d_SIF, ifile, name, c, directory, filt=True):
         ## append data
         if 'SID' in ifile:
-            # define observation names
-            ObsNames=['date','lat','lon','obsSID', 'satSID', 'obsSIDstd','obsSIDln','obsSIDunc',
-                      'satSIDstd','satSIDln', 'satSIDunc']
-        
-            # Read data
-            ObsData  = np.genfromtxt(os.path.join(directory, ifile),dtype=None,skip_header=1,names=ObsNames)
-        
-            CRS_ENV = np.arange(0,len(ObsData))
-            obsDate = ObsData['date'][CRS_ENV]
-            obslat  = ObsData['lat'][CRS_ENV]
-            obslon  = ObsData['lon'][CRS_ENV]
-            obsSID  = ObsData['obsSID'][CRS_ENV]
-            obsSIDunc = ObsData['obsSIDunc'][CRS_ENV]
-            obsSIDstd = ObsData['obsSIDstd'][CRS_ENV]
-            satSID  = ObsData['satSID'][CRS_ENV]
-            satSIDunc = ObsData['satSIDunc'][CRS_ENV]
-            satSIDstd = ObsData['satSIDstd'][CRS_ENV]
-           
-            m=~np.isnan(obsSID)
-
-            # assign data to Data object
-            if any(m):
-                #print(d_SID.var)
-                d_SID.lat.append(obslat[m])
-                d_SID.lon.append(obslon[m])
-                d_SID.obsSID.append(obsSID[m])
-                d_SID.obsSIDunc.append(obsSIDunc[m])
-                d_SID.obsSIDstd.append(obsSIDstd[m])
-                d_SID.satSID.append(satSID[m])
-                d_SID.satSIDunc.append(satSIDunc[m])
-                d_SID.satSIDstd.append(satSIDstd[m])
-                d_SID.name.append(name)
-                d_SID.date.append(obsDate[m])
-                d_SID.c.append(c)
-                d_SID.HS.append(HS)
+            #print(name)
+            #if 'AWI-ULS' not in name: 
+                # define observation names
+                ObsNames=['date','lat','lon','obsSID', 'satSID', 'obsSIDstd','obsSIDln','obsSIDunc',
+                          'QFT', 'QFS', 'QFG', 'satSIDstd','satSIDln', 'satSIDunc', 'index']
+            
+                # Read data
+                ObsData  = np.genfromtxt(os.path.join(directory, ifile),dtype=None,names=True) #,skip_header=1,names=ObsNames)
+            
+                CRS_ENV = np.arange(0,len(ObsData))
+                
+                QFT = ObsData['QFT'][CRS_ENV]
+    
+                if filt:
+                    index = QFT<3
+                else:
+                    index = (QFT<4) | (np.isnan(QFT))
+                    if name=='SCICEX':
+                        years = np.array([dt.datetime.strptime(dd.decode('utf8'), '%Y-%m-%dT%H:%M:%S').year for dd in ObsData['date'][CRS_ENV]])
+                        index = years != 2014
+                    if 'AWI-ULS' in name:
+                        SID = ObsData['obsSID'][CRS_ENV][index]
+                        index = SID!=0
+                        
+                    
+                obsDate = ObsData['date'][CRS_ENV][index]
+                obslat  = ObsData['lat'][CRS_ENV][index]
+                obslon  = ObsData['lon'][CRS_ENV][index]
+                obsSID  = ObsData['obsSID'][CRS_ENV][index]
+                obsSIDunc = ObsData['obsSID_unc'][CRS_ENV][index]
+                obsSIDstd = ObsData['obsSID_std'][CRS_ENV][index]
+                obsSIDln = ObsData['obsSID_ln'][CRS_ENV][index]
+                
+                satSID  = ObsData['satSID'][CRS_ENV][index]
+                satSIDunc = ObsData['satSID_unc'][CRS_ENV][index]
+                satSIDstd = ObsData['satSID_std'][CRS_ENV][index]
+               
+                m=np.logical_and(~np.isnan(obsSID), obsSIDln>0)
+    
+                # assign data to Data object
+                if any(m):
+                    #print(d_SID.var)
+                    d_SID.lat.append(obslat[m])
+                    d_SID.lon.append(obslon[m])
+                    d_SID.obsSID.append(obsSID[m])
+                    d_SID.obsSIDunc.append(obsSIDunc[m])
+                    d_SID.obsSIDstd.append(obsSIDstd[m])
+                    d_SID.satSID.append(satSID[m])
+                    d_SID.satSIDunc.append(satSIDunc[m])
+                    d_SID.satSIDstd.append(satSIDstd[m])
+                    d_SID.name.append(name)
+                    d_SID.date.append(obsDate[m])
+                    d_SID.c.append(c)
+                    d_SID.HS.append(HS)
 
         
         
         elif 'SIT' in ifile or 'SD' in ifile or 'FRB' in ifile:
+            
             # define observation names
             ObsNames=['date','lat','lon','obsSD','obsSIT','obsSIF','satSD','satSIT',
                       'satSIF', "obsSD_std","obsSD_ln", "obsSD_unc","obsSIT_std","obsSIT_ln", "obsSIT_unc","obsFRB_std",
-                      "obsFRB_ln", "obsFRB_unc", "satSD_std","satSD_ln", "satSD_unc","satSIT_std","satSIT_ln", "satSIT_unc","satFRB_std",
-                      "satFRB_ln", "satFRB_unc"]
+                      "obsFRB_ln", "obsFRB_unc", 'QFT', 'QFS', "satSD_std","satSD_ln", "satSD_unc","satSIT_std","satSIT_ln", "satSIT_unc","satFRB_std",
+                      "satFRB_ln", "satFRB_unc", 'index']
             # Read data
-            ObsData  = np.genfromtxt(os.path.join(directory, ifile),dtype=None, skip_header=1, names=ObsNames)
+            try:
+                ObsData  = np.genfromtxt(os.path.join(directory, ifile),dtype=None, names=True) #skip_header=1, names=ObsNames)
+            except:
+                ObsNames2 = [
+                    'date','lat','lon','obsSD','obsSIT','obsSIF','satSD','satSIT','satSIF',
+                    "obsSD_std","obsSD_ln","obsSD_unc","obsSIT_std","obsSIT_ln","obsSIT_unc",
+                    "obsFRB_std","obsFRB_ln","obsFRB_unc", "QFT", "QFS","satSD_std","satSD_ln","satSD_unc",
+                    "satSIT_std","satSIT_ln","satSIT_unc","satFRB_std","satFRB_ln","satFRB_unc"
+                ]
+                ObsData  = np.genfromtxt(os.path.join(directory, ifile),dtype=None, names=True) #skip_header=1, names=ObsNames2)
             
+            #print(ObsData.dtype.names)
             # identify copy rows
-            ObsData = np.unique(ObsData, axis=0)
+            #ObsData = np.unique(ObsData, axis=0)
  
             CRS_ENV = np.arange(0,len(ObsData))
-            obsDate = ObsData['date'][CRS_ENV]
-            obslat  = ObsData['lat'][CRS_ENV]
-            obslon  = ObsData['lon'][CRS_ENV]         
             
-            obsSIF  = ObsData['obsSIF'][CRS_ENV]
-            obsSD   = ObsData['obsSD'][CRS_ENV]
-            obsSIT  = ObsData['obsSIT'][CRS_ENV]
-            satSIF  = ObsData['satSIF'][CRS_ENV]
-            satSIT  = ObsData['satSIT'][CRS_ENV]
-            satSD   = ObsData['satSD'][CRS_ENV]
-            obsSITunc = ObsData['obsSIT_unc'][CRS_ENV]
-            obsSITstd = ObsData['obsSIT_std'][CRS_ENV]
-            obsSIFunc = ObsData['obsFRB_unc'][CRS_ENV]
-            obsSIFstd = ObsData['obsFRB_std'][CRS_ENV]
-            obsSDunc = ObsData['obsSD_unc'][CRS_ENV]
-            obsSDstd = ObsData['obsSD_std'][CRS_ENV]
-            satSITunc = ObsData['satSIT_unc'][CRS_ENV]
-            satSITstd = ObsData['satSIT_std'][CRS_ENV]
-            satSIFunc = ObsData['satFRB_unc'][CRS_ENV]
-            satSIFstd = ObsData['satFRB_std'][CRS_ENV]
-            satSDunc = ObsData['satSD_unc'][CRS_ENV]
-            satSDstd = ObsData['satSD_std'][CRS_ENV]
+            QFS = ObsData['QFS'][CRS_ENV]
+            QFT = ObsData['QFT'][CRS_ENV]
+            #lim = QFS<3
+            
+            #lim = 0
+            if 'SB_AWI' in ifile or 'ASPeCt' in ifile:
+                QFS = np.ones(len(QFS))*3
+            if filt:
+                index = (QFS<3) & (QFT<3)
+            else:
+                index = QFS<4
+                if name=='IMB-CRREL':
+                    years = np.array([dt.datetime.strptime(dd.decode('utf8'), '%Y-%m-%dT%H:%M:%S').year for dd in ObsData['date'][CRS_ENV]])
+                    index = years != 2017
+
+            obsDate = ObsData['date'][CRS_ENV][index]
+            obslat  = ObsData['lat'][CRS_ENV][index]
+            obslon  = ObsData['lon'][CRS_ENV][index]          
+            obsSIF  = ObsData['obsSIF'][CRS_ENV][index]
+            obsSD   = ObsData['obsSD'][CRS_ENV][index]
+            obsSIT  = ObsData['obsSIT'][CRS_ENV][index]
+            satSIF  = ObsData['satSIF'][CRS_ENV][index]
+            satSIT  = ObsData['satSIT'][CRS_ENV][index]
+            satSD   = ObsData['satSD'][CRS_ENV][index]
+            obsSITunc = ObsData['obsSIT_unc'][CRS_ENV][index]
+            obsSITstd = ObsData['obsSIT_std'][CRS_ENV][index]
+            obsSITln = ObsData['obsSIT_ln'][CRS_ENV][index]
+
+            #print(obsSITln)
+            obsSIFunc = ObsData['obsFRB_unc'][CRS_ENV][index]
+            obsSIFstd = ObsData['obsFRB_std'][CRS_ENV][index]
+            obsSDunc = ObsData['obsSD_unc'][CRS_ENV][index]
+            obsSDstd = ObsData['obsSD_std'][CRS_ENV][index]
+            satSITunc = ObsData['satSIT_unc'][CRS_ENV][index]
+            satSITstd = ObsData['satSIT_std'][CRS_ENV][index]
+            satSIFunc = ObsData['satFRB_unc'][CRS_ENV][index]
+            satSIFstd = ObsData['satFRB_std'][CRS_ENV][index]
+            satSDunc = ObsData['satSD_unc'][CRS_ENV][index]
+            satSDstd = ObsData['satSD_std'][CRS_ENV][index]
 
             if 'OIB' in name and 'SH' in name or 'AEM' in name: # convert sea ice frb to total frb
                 satSIF = satSIF + satSD
             elif 'OIB' in ifile:
                 obsSIF = obsSIF - obsSD
-            if 'AEM-AWI' in ifile:
+                #satSIF = satSIF + satSD
+            if 'AEM-AWI' in ifile or 'HEM' in ifile:
                 satSIT = satSIT + satSD # AEM measures SIT+SD
             
             m=~np.isnan(obsSD)
-            n=~np.isnan(obsSIT)
+            n=np.logical_and(~np.isnan(obsSIT), obsSITln>0)
             o=~np.isnan(obsSIF)
             
             # assign non nan data to Data object
             if any(n) and name!='NP' and 'CS2' not in name:
+                # if name == 'AEM-AWI' or name =='MOSAICHEM':
+                #     name = 'AEM'
                 
                 d_SIT.lat.append(obslat[n])
                 d_SIT.lon.append(obslon[n])
@@ -754,6 +802,10 @@ def Append_data(d_SID, d_SIT, d_SD, d_SIF, ifile, name, c,directory):
                 d_SD.obsSD.append(obsSD[m])
                 d_SD.satSD.append(satSD[m])
                 d_SD.obsSDunc.append(obsSDunc[m])
+                
+                
+                
+                
                 d_SD.satSDunc.append(satSDunc[m])
                 d_SD.obsSDstd.append(obsSDstd[m])
                 d_SD.satSDstd.append(satSDstd[m])
@@ -769,7 +821,7 @@ def Append_data(d_SID, d_SIT, d_SD, d_SIF, ifile, name, c,directory):
                 elif name=='OIBCS2':
                     name='OIB-CS2'
                     c='dimgray'
-                elif name=='OIBSH':
+                elif name=='OIBSHSH':
                     name='OIB-ENV-SH'
                 
 
@@ -799,38 +851,41 @@ def Append_data_nc(d_SID, d_SIT, d_SD, d_SIF, ifile, name, c, directory):
     
     #print(dataset)
     if 'SID' in ifile:
-        # Extract variables from the NetCDF file
-        obsSID = dataset['obsSID'].to_numpy()
-        #print(obsSID)
-        satSID = dataset['satSID'].to_numpy()
-        obsSIDunc = dataset['obsSIDunc'].to_numpy()
-        #print(obsSIDunc)
-        obsSIDstd = dataset.variables['obsSIDstd'].to_numpy()
-        satSIDunc = dataset.variables['satSIDunc'].to_numpy()
-        satSIDstd = dataset.variables['satSIDstd'].to_numpy()
-        obslat = dataset.variables['lat'].to_numpy()
-        obslon = dataset.variables['lon'].to_numpy()
-        obsDate = dataset.variables['date'].to_numpy()#.filled(fill_value=np.nan)
 
-        m = ~np.isnan(obsSID)
-
-        if any(m):
-            d_SID.lat.append(obslat[m])
-            d_SID.lon.append(obslon[m])
-            d_SID.obsSID.append(obsSID[m])
-            d_SID.obsSIDunc.append(obsSIDunc[m])
-            d_SID.obsSIDstd.append(obsSIDstd[m])
-            d_SID.satSID.append(satSID[m])
-            d_SID.satSIDunc.append(satSIDunc[m])
-            d_SID.satSIDstd.append(satSIDstd[m])
-            d_SID.name.append(name)
-            d_SID.date.append(obsDate[m])
-            d_SID.c.append(c)
-            d_SID.HS.append(HS)
+            # Extract variables from the NetCDF file
+            obsSID = dataset['obsSID'].to_numpy()
+            #print(obsSID)
+            satSID = dataset['satSID'].to_numpy()
+            obsSIDunc = dataset['obsSIDunc'].to_numpy()
+            #print(obsSIDunc)
+            obsSIDstd = dataset.variables['obsSIDstd'].to_numpy()
+            satSIDunc = dataset.variables['satSIDunc'].to_numpy()
+            satSIDstd = dataset.variables['satSIDstd'].to_numpy()
+            obslat = dataset.variables['lat'].to_numpy()
+            obslon = dataset.variables['lon'].to_numpy()
+            obsDate = dataset.variables['date'].to_numpy()#.filled(fill_value=np.nan)
+    
+            m = ~np.isnan(obsSID)
+    
+            if any(m):
+                d_SID.lat.append(obslat[m])
+                d_SID.lon.append(obslon[m])
+                d_SID.obsSID.append(obsSID[m])
+                d_SID.obsSIDunc.append(obsSIDunc[m])
+                d_SID.obsSIDstd.append(obsSIDstd[m])
+                d_SID.satSID.append(satSID[m])
+                d_SID.satSIDunc.append(satSIDunc[m])
+                d_SID.satSIDstd.append(satSIDstd[m])
+                d_SID.name.append(name)
+                d_SID.date.append(obsDate[m])
+                d_SID.c.append(c)
+                d_SID.HS.append(HS)
 
     elif 'SIT' in ifile or 'SD' in ifile or 'FRB' in ifile:
         # Extract variables from the NetCDF file
         obsSIT = dataset['obsSIT'].to_numpy()
+        obsSIT_ln = dataset['obsSITln'].to_numpy()
+        print(obsSIT_ln)
         satSIT = dataset['satSIT'].to_numpy()
         obsSD = dataset['obsSD'].to_numpy()
         satSD = dataset['satSD'].to_numpy()
@@ -918,13 +973,89 @@ def Append_data_nc(d_SID, d_SIT, d_SD, d_SIF, ifile, name, c, directory):
     
     return d_SID, d_SIT, d_SD, d_SIF
 
+def combine_existing_figures_as_images(map_fig, scatter_fig, hist_fig, savepath=None):
+    """
+    Combine three matplotlib figures horizontally by converting them to images.
+
+    Parameters:
+        map_fig: matplotlib Figure (e.g. map plot)
+        scatter_fig: matplotlib Figure (e.g. scatter plot)
+        hist_fig: matplotlib Figure (e.g. histogram plot)
+        savepath: optional file path to save the combined figure
+
+    Returns:
+        combined matplotlib Figure object
+    """
+    def fig_to_array(fig):
+        buf = io.BytesIO()
+        fig.savefig(buf, format='png', bbox_inches='tight', dpi=150)
+        buf.seek(0)
+        img = Image.open(buf)
+        return np.array(img)
+
+    # Convert each figure to image arrays
+    img_map = fig_to_array(map_fig)
+    img_scatter = fig_to_array(scatter_fig)
+    img_hist = fig_to_array(hist_fig)
+
+    # Create a new figure with 1 row and 3 columns
+    fig, axs = plt.subplots(1, 3, figsize=(36, 12))
+
+    # Hide axes and show images
+    for ax in axs:
+        ax.axis('off')
+
+    axs[0].imshow(img_map)
+    axs[1].imshow(img_scatter)
+    axs[2].imshow(img_hist)
+
+    plt.tight_layout()
+
+    if savepath:
+        plt.savefig(savepath, bbox_inches='tight')
+        print(f"Combined figure saved to: {savepath}")
+        plt.close(fig)
+    else:
+        plt.show()
+
+    return fig
+
+def combine_images_vertically(img1_path, img2_path, output_path, dpi=300):
+    # Open the images
+    img1 = Image.open(img1_path)
+    img2 = Image.open(img2_path)
+
+    # Ensure both are in RGB mode
+    img1 = img1.convert("RGB")
+    img2 = img2.convert("RGB")
+
+    # Resize to match width if needed (optional)
+    if img1.width != img2.width:
+        new_width = max(img1.width, img2.width)
+        img1 = img1.resize((new_width, int(img1.height * new_width / img1.width)))
+        img2 = img2.resize((new_width, int(img2.height * new_width / img2.width)))
+
+    # Create new image with combined height
+    total_height = img1.height + img2.height
+    combined_img = Image.new('RGB', (img1.width, total_height), (255, 255, 255))
+
+    # Paste both images
+    combined_img.paste(img1, (0, 0))
+    combined_img.paste(img2, (0, img1.height))
+
+    # Save with high resolution
+    combined_img.save(output_path, dpi=(dpi, dpi))
+    print(f"Saved high-resolution combined image to: {output_path}")
+
 #%% MAIN
 # Specify the directory containing the data files.
-directory = "C:/Users/Ida Olsen/Documents/work/RRDPp/satellite/Final_files/final/Arctic/"
+#directory = "C:/Users/Ida Olsen/Documents/work/RRDPp/satellite/Final_files/final/Arctic/"
+directory = "C:/Users/Ida Olsen/Documents/work/RRDPp/satellite/Final_files/collocated_files-20250519/collocated_files"
 # List all files in the specified directory.
 files = os.listdir(directory)
 
-sat = 'ENV'  # Set the satellite variable (either ENV for Envisat or CS2 for CryoSat2)
+sat = 'CS2'  # Set the satellite variable (either ENV for Envisat or CS2 for CryoSat2)
+filt = False
 
 # Initialize lists to hold data objects and boolean flags.
 objects = []
@@ -943,7 +1074,7 @@ d_SIF.var = 'FRB'  # Set the variable type to 'FRB'
 # Loop through the files and append data to the respective objects.
 for ifile, i in zip(files, range(len(files))):
     # Check if the file is a data file and matches the satellite criteria.
-    if (ifile.endswith('.nc') and 
+    if (ifile.endswith('.dat') and 
         (ifile.startswith('ESACCI') and (sat in ifile.replace('-', '')) or 
          (('CS2' in ifile) and ('ENV' in sat) and ('OIB' in ifile)))):
         # Get the name from the filename.
@@ -957,64 +1088,67 @@ for ifile, i in zip(files, range(len(files))):
             HS = 'SH'  # Set to Southern Hemisphere if criteria are met
         
         # Append the data from the file to the respective Data objects.
-        d_SID, d_SIT, d_SD, d_SIF = Append_data_nc(d_SID, d_SIT, d_SD, d_SIF, ifile, name, c, directory=directory)
+        d_SID, d_SIT, d_SD, d_SIF = Append_data(d_SID, d_SIT, d_SD, d_SIF, ifile, name, c, directory=directory, filt=filt)
 
+
+if sat=='CS2':
+    d_SD.name[d_SD.name=='AEM: (AWI + MOSAIC)'] = 'AEM-AWI'
 # Generate histograms for Sea Ice Thickness and Snow Depth.
-Histograms(d_SID, sat)  # Uncomment to generate histograms for Sea Ice Draft
-Histograms(d_SIT, sat)  # Generate histogram for Sea Ice Thickness
+fig_hist_SID, ax = Histograms(d_SID, sat)  # Uncomment to generate histograms for Sea Ice Draft
+fig_hist_SIT, ax = Histograms(d_SIT, sat)  # Generate histogram for Sea Ice Thickness
 if sat=='ENV':
-      Histograms(d_SIF, sat)  # Uncomment to generate histogram for Freeboard if satellite is ENV
-Histograms(d_SD, sat)  # Generate histogram for Snow Depth
+    fig_hist_SIF, ax =Histograms(d_SIF, sat)  # Uncomment to generate histogram for Freeboard if satellite is ENV
+fig_hist_SD, ax = Histograms(d_SD, sat)  # Generate histogram for Snow Depth
 
 # Sort data based on names for all data types.
 d_SIT.sort()
 d_SD.sort()
 d_SID.sort()
 if sat == 'ENV':
-    d_SIF.sort()
+     d_SIF.sort()
 
 # Define the output file for statistics.
 ofile = f'stats_{sat}_out.txt'
 # Get statistics about the data and save them to the specified output file.
 stats(d_SID, sat, ofile)  # Uncomment to get stats for Sea Ice Draft
-stats(d_SIT, sat, ofile)  # Get statistics for Sea Ice Thickness
-stats(d_SD, sat, ofile)  # Get statistics for Snow Depth
-stats(d_SIF, sat, ofile)  # Uncomment to get stats for Freeboard
+# stats(d_SIT, sat, ofile)  # Get statistics for Sea Ice Thickness
+# stats(d_SD, sat, ofile)  # Get statistics for Snow Depth
+# stats(d_SIF, sat, ofile)  # Uncomment to get stats for Freeboard
 
-# Generate scatter plots for each data type.
-scatter(d_SID)  # Scatter plot for Sea Ice Draft
-scatter(d_SIT)  # Scatter plot for Sea Ice Thickness
-scatter(d_SIF)  # Scatter plot for Freeboard
-scatter(d_SD)   # Scatter plot for Snow Depth
+# # Generate scatter plots for each data type.
+fig_scatter_SID, ax = scatter(d_SID)  # Scatter plot for Sea Ice Draft
+fig_scatter_SIT, ax = scatter(d_SIT)  # Scatter plot for Sea Ice Thickness
+fig_scatter_SIF, ax = scatter(d_SIF)  # Scatter plot for Freeboard
+fig_scatter_SD, ax = scatter(d_SD)   # Scatter plot for Snow Depth
 
 #%% Polar plots
-#bool_list_FRB = np.invert(['ASPeCt'==name or 'SH' in name for name in d_SIF.name])
-# savename =  'FRB_data_'+sat+'.png'
-# title = 'FRB Validation Data' #' for ' + sat
-# if sat=='ENV':
-#     pp.plot_all(d_SIF.lat[bool_list_FRB], d_SIF.lon[bool_list_FRB], d_SIF.obsSIF[bool_list_FRB], title=title, ylabel=d_SIF.name[bool_list_FRB], c=d_SIF.c[bool_list_FRB], savename=savename, s=40)
+bool_list_FRB = np.invert(['ASPeCt'==name or 'SH' in name for name in d_SIF.name])
+savename =  'FRB_data_'+sat+'.png'
+title = 'FRB Validation Data' #' for ' + sat
+if sat=='ENV':
+    fig_geo_SIF, ax = pp.plot_all(d_SIF.lat[bool_list_FRB], d_SIF.lon[bool_list_FRB], d_SIF.obsSIF[bool_list_FRB], title=title, ylabel=d_SIF.name[bool_list_FRB], c=d_SIF.c[bool_list_FRB], savename=savename, s=40, sat=d_SIF.sat)
 
-# bool_list_SIT = np.invert(['ASPeCt'==name or 'SH' in name for name in d_SIT.name])
-# savename =  'SIT_data_'+sat+'.png'
-# title = 'SIT Validation Data for ' + sat
-# pp.plot_all(d_SIT.lat[bool_list_SIT], d_SIT.lon[bool_list_SIT], d_SIT.obsSIT[bool_list_SIT], title=title, ylabel=d_SIT.name[bool_list_SIT], c=d_SIT.c[bool_list_SIT], savename=savename, s=40)
+bool_list_SIT = np.invert(['ASPeCt'==name or 'SH' in name for name in d_SIT.name])
+savename =  'SIT_data_'+sat+'.png'
+title = 'SIT Validation Data for ' + sat
+fig_geo_SIT, ax = pp.plot_all(d_SIT.lat[bool_list_SIT], d_SIT.lon[bool_list_SIT], d_SIT.obsSIT[bool_list_SIT], title=title, ylabel=d_SIT.name[bool_list_SIT], c=d_SIT.c[bool_list_SIT], savename=savename, s=40, sat=d_SIT.sat)
 
 
-# bool_list_SD = np.invert(['ASPeCt'==name or 'SH' in name for name in d_SD.name])
-# savename = 'SD_data_'+sat+'.png'
-# title = 'SD Validation Data for '  + sat
-# pp.plot_all(d_SD.lat[bool_list_SD], d_SD.lon[bool_list_SD], d_SD.obsSD[bool_list_SD], title=title, ylabel=d_SD.name[bool_list_SD], c=d_SD.c[bool_list_SD], savename=savename, s=40)
+bool_list_SD = np.invert(['ASPeCt'==name or 'SH' in name for name in d_SD.name])
+savename = 'SD_data_'+sat+'.png'
+title = 'SD Validation Data for '  + sat
+fig_geo_SD, ax = pp.plot_all(d_SD.lat[bool_list_SD], d_SD.lon[bool_list_SD], d_SD.obsSD[bool_list_SD], title=title, ylabel=d_SD.name[bool_list_SD], c=d_SD.c[bool_list_SD], savename=savename, s=40, sat=d_SD.sat)
 
-# bool_list_SID = np.invert(['ASPeCt'==name or 'SH' in name or 'ULS' in name for name in d_SID.name])
-# savename = 'SID_data_'+sat+'.png'
-# s = 500
-# title = 'SID Validation Data for '  + sat
-# pp.plot_all(d_SID.lat[bool_list_SID], d_SID.lon[bool_list_SID], d_SID.obsSID[bool_list_SID], title=title,  c=d_SID.c[bool_list_SID], ylabel=d_SID.name[bool_list_SID], savename=savename, s=s)
+bool_list_SID = np.invert(['ASPeCt'==name or 'SH' in name or 'ULS' in name for name in d_SID.name])
+savename = 'SID_data_'+sat+'.png'
+s = 500
+title = 'SID Validation Data for '  + sat
+fig_geo_SID, ax = pp.plot_all(d_SID.lat[bool_list_SID], d_SID.lon[bool_list_SID], d_SID.obsSID[bool_list_SID], title=title,  c=d_SID.c[bool_list_SID], ylabel=d_SID.name[bool_list_SID], savename=savename, s=s, sat=d_SID.sat)
 
-# objects += [d_SD, d_SIT, d_SID]
-# bool_list += [bool_list_SD, bool_list_SIT, bool_list_SID]
+objects += [d_SD, d_SIT, d_SID]
+bool_list += [bool_list_SD, bool_list_SIT, bool_list_SID]
 
-# #%%  ANTARCTIC
+#%%  ANTARCTIC
 # bool_list_SIT = ['ASPeCt' in name or 'SH' in name for name in d_SIT.name]
 # bool_list_SD =  ['SH' in name for name in d_SD.name] #'ASPeCt' in name or 
 # bool_list_SID = ['ASPeCt' in name or 'SH' in name or 'AWI-ULS' in name for name in d_SID.name]
@@ -1030,4 +1164,18 @@ scatter(d_SD)   # Scatter plot for Snow Depth
 # names = np.array([name.replace('-SH','')+'-CS2' if ('ENV' not in name) else name.replace('-SH', '') for name in names])
 # colors = np.concatenate([d_SIT.c[bool_list_SIT], d_SD.c[bool_list_SD], d_SID.c[bool_list_SID], np.array(d_SIF.c)[bool_list_SIF]])
 # pp.plot_all(lats, lons, obs, title=title, ylabel=names, s=5, c=colors, savename=savename, NP=False)
-    
+
+
+#%% Combine plots
+
+combine_existing_figures_as_images(fig_geo_SID, fig_scatter_SID, fig_hist_SID, savepath=f'{d_SID.var}_{sat}_combined_{filt}.png')
+combine_existing_figures_as_images(fig_geo_SIT, fig_scatter_SIT, fig_hist_SIT, savepath=f'{d_SIT.var}_{sat}_combined_{filt}.png')
+combine_existing_figures_as_images(fig_geo_SD, fig_scatter_SD, fig_hist_SD, savepath=f'{d_SD.var}_{sat}_combined_{filt}.png')
+if sat=='ENV':
+    combine_existing_figures_as_images(fig_geo_SIF, fig_scatter_SIF, fig_hist_SIF, savepath=f'{d_SIF.var}_{sat}_combined_{filt}.png')
+
+
+# #%% Save final figure
+# combine_images_vertically(f'{d_SIT.var}_CS2_combined_{filt}.png', f'{d_SIT.var}_ENV_combined_{filt}.png', f'{d_SIT.var}_combined_{filt}.png', dpi=300)
+# combine_images_vertically(f'{d_SD.var}_CS2_combined_{filt}.png', f'{d_SD.var}_ENV_combined_{filt}.png', f'{d_SD.var}_combined_{filt}.png', dpi=300)
+# combine_images_vertically(f'{d_SID.var}_CS2_combined_{filt}.png', f'{d_SID.var}_ENV_combined_{filt}.png', f'{d_SID.var}_combined_{filt}.png', dpi=300)
