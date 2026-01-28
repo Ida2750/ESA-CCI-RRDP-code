@@ -245,7 +245,7 @@ save_path = os.path.dirname(os.path.dirname(os.getcwd())) + '/IMB/'
 save_path_data = os.path.dirname(os.path.dirname(
     os.getcwd())) + '/FINAL/IMB/final/'
 if not os.path.exists(save_path_data):os.makedirs(save_path_data)
-ofile = 'ESACCIplus-SEAICE-RRDP2+-SIT-IMB-countlast.nc'
+ofile = 'ESACCIplus-SEAICE-RRDP2+-SIT-IMB-test.nc'
 gridres = 25000  # grid resolution
 dtint = 30  # days per mean
 ## saving locations
