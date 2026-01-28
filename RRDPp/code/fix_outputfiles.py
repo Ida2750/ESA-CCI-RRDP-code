@@ -47,7 +47,8 @@ basepath = '/dmidata/users/ilo/projects/RRDPp/FINAL'
 output_basepath = os.path.join(basepath, 'combined_final')
 os.makedirs(output_basepath, exist_ok=True)
 
-OBSID = os.listdir(basepath) + ['ASPeCt', 'AWI_ULS']
+#OBSID = os.listdir(basepath) + ['ASPeCt', 'AWI_ULS']
+OBSID = ['AWI_ULS']
 for obsid in OBSID:
     if obsid == 'combined_final':
         continue  # skip output folder
@@ -55,12 +56,13 @@ for obsid in OBSID:
     files_nc = glob.glob(f'{basepath}/{obsid}/final/*.nc') + glob.glob(f'{basepath}/Antarctic/{obsid}/final/*.nc')
 
     for file in files_dat:
+        print(file)
         data = np.genfromtxt(file, names=True, dtype=None, encoding=None)
 
         data = remove_qfg(data)
 
 
-        if '-IMB' in file or 'SB-AWI' in file or 'ASPeCt' in file or 'ASSIST' in file or 'SB_AWI' in file:
+        if '-IMB' in file or 'SB-AWI' in file or ('NICE' in file and 'SD' in file) or 'ASPeCt' in file or 'ASSIST' in file or 'SB_AWI' in file:
             # update QFS to 3 if it is not already
             if 'QFS' in data.dtype.names:
                 data['QFS'][data['QFS'] != 3] = 3
@@ -74,16 +76,19 @@ for obsid in OBSID:
 
         if 'BGEP' in file or ('Nansen' in file and 'SID' in file):
             data['uncflag'][data['uncflag'] == 1] = 2
+            if 'Nansen' in file:
+                data['SIDunc'] = [np.nan] * len(data['SIDunc'])
 
         if 'SCICEX' in file or 'AEM-AWI' in file:
             if 'ppflag' in data.dtype.names:
                 data['ppflag'][data['ppflag'] == 1] = 2
         
+        
         if 'OIB' in file:
             var = 'FRBln'
         elif 'SCICEX' in file:
             var = 'SIDln'
-        elif 'AEM-AWI' in file or 'HEM' in file:
+        elif 'AEM-AWI' in file or 'HEM' in file or ('NICE' in file and 'SIT' in file):
             var = 'SITln'
         else:
             var = None  # No QFS update for these
@@ -95,6 +100,7 @@ for obsid in OBSID:
         np.savetxt(outfile, data, header=' '.join(data.dtype.names), fmt='%s', comments='')
 
     for file in files_nc:
+        print(file)
         ds = xr.open_dataset(file)
 
         # Remove QFG if it exists
@@ -102,7 +108,7 @@ for obsid in OBSID:
             ds = ds.drop_vars('QFG')
 
         # Force QFS to 3 for specific datasets
-        if '-IMB' in file or 'SB-AWI' in file or 'ASPeCt' in file or 'ASSIST' in file or 'SB_AWI' in file:
+        if '-IMB' in file or 'SB-AWI' in file or ('NICE' in file and 'SD' in file) or 'ASPeCt' in file or 'ASSIST' in file or 'SB_AWI' in file:
             if 'QFS' in ds:
                 ds['QFS'] = ds['QFS'].where(ds['QFS'] == 3, other=3)
 
@@ -125,6 +131,9 @@ for obsid in OBSID:
         # Update unc from 1 to 2 where needed
         if 'BGEP' in file or ('Nansen' in file and 'SID' in file):
             ds['uncflag'] = ds['uncflag'].where(ds['uncflag'] != 1, other=2)
+
+        if 'Nansen' in file and 'SIDunc' in ds:
+            ds['SIDunc'] = xr.full_like(ds['SIDunc'], np.nan)
 
         # Update ppflag from 1 to 2 where applicable
         if 'SCICEX' in file or 'AEM-AWI' in file:
@@ -154,6 +163,7 @@ sat_path = '/dmidata/users/ilo/projects/RRDPp/satellite/Final_files'
 sat_outpath = os.path.join(sat_path, 'combined_final')
 os.makedirs(sat_outpath, exist_ok=True)
 
+#files_dat = glob.glob(f'{sat_path}/*.dat')
 files_dat = glob.glob(f'{sat_path}/*.dat')
 
 ObsNames = [
@@ -198,6 +208,9 @@ for file in files_dat:
                 data = data[years != 2017]
             if 'SCICEX' in file:
                 data = data[years != 2014]
+
+        if ('Nansen' in file and 'SID' in file): # update unc to NaN
+            data['SID_unc'] = [np.nan] * len(data['SID_unc'])
                 
     # Always remove QFG
     data = remove_qfg(data)
