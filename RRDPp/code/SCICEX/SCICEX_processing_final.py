@@ -342,7 +342,7 @@ if not os.path.exists(saveplot):os.makedirs(saveplot)
 
 directories = sort(directory, os.listdir(directory))
 count=0
-directories = ['2014NM', '2011C', '2011NH'] 
+directories = ['2000a'] #, '2011NH'] 
 for dirr in directories:
     try:
         dirr_check = int(re.findall('\d+', dirr)[0])
@@ -513,15 +513,16 @@ for dirr in directories:
                     #SID_clean = SID[np.isfinite(SID)]
 
                     # Plot
-                    plt.figure(figsize=(8, 5))
-                    plt.hist(SID, bins=1000, edgecolor='black', color='skyblue')
-                    plt.xlabel('Sea Ice Draft (m)')
-                    plt.ylabel('Frequency')
-                    plt.title('Distribution of Sea Ice Draft (SID)')
-                    plt.grid(True, linestyle='--', alpha=0.5)
-                    plt.tight_layout()
-                    plt.xlim(0,8)
-                    plt.savefig(f'test_{ifile}.png')
+                    # plt.figure(figsize=(8, 5))
+                    # plt.hist(SID, bins=1000, edgecolor='black', color='skyblue')
+                    # plt.xlabel('Sea Ice Draft (m)')
+                    # plt.ylabel('Frequency')
+                    # plt.title('Distribution of Sea Ice Draft (SID)')
+                    # plt.grid(True, linestyle='--', alpha=0.5)
+                    # plt.tight_layout()
+                    # plt.xlim(0,8)
+                    # plt.savefig(f'test_{ifile}.png')
+                    # plt.close()
                     s.date.append(t)
                     # s.obsID.append([dirr for i in range(len(latitude))])
 
