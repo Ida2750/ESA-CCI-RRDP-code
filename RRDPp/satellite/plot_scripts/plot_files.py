@@ -19,6 +19,8 @@ import numpy as np
 import io
 from PIL import Image
 import matplotlib as mpl
+from matplotlib.colors import LinearSegmentedColormap
+import mpl_scatter_density # adds projection='scatter_density'
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
@@ -39,6 +41,17 @@ mpl.rcParams['lines.linewidth'] = 5
 # Ignore warnings
 warnings.filterwarnings("ignore")
 
+# "Viridis-like" colormap with white background
+white_viridis = LinearSegmentedColormap.from_list('white_viridis', [
+    (0, '#ffffff'),
+    (1e-20, '#440053'),
+    (0.2, '#404388'),
+    (0.4, '#2a788e'),
+    (0.6, '#21a784'),
+    (0.8, '#78d151'),
+    (1, '#fde624'),
+], N=256)
+
 # Homemade modules
 import polar_plots as pp
 
@@ -50,7 +63,7 @@ def odr_fit(x_o, y_o, sx, sy):
         # If sx has no valid entries, set both sx and sy to ones (default weight)
         sx = np.ones(len(x_o))
         sy = np.ones(len(y_o))
-        print('entered')  # Indicate that the default values are being used
+        #print('entered')  # Indicate that the default values are being used
     else:
         # Replace NaN values in sx and sy with their respective means
         sx[np.isnan(sx)] = np.nanmean(sx)
@@ -117,7 +130,8 @@ def Histograms_time(d_SIT, d_SD, d_SIF, d_SID):
     # Iterate over each dataset
     for v in [d_SIT, d_SD, d_SIF, d_SID]:
         # Convert the date strings into datetime objects
-        dates = [dt.datetime.strptime(dd.decode('utf8'), '%Y-%m-%dT%H:%M:%S') for dd in np.concatenate((v.date))]
+        #dates = [dt.datetime.strptime(dd.decode('utf8'), '%Y-%m-%dT%H:%M:%S') for dd in np.concatenate((v.date))]
+        dates = [dt.datetime.strptime(dd, '%Y-%m-%dT%H:%M:%S') for dd in np.concatenate((v.date))]
         
         # Extract the year and month from the datetime objects
         years = [d.year for d in dates]  # List of years
@@ -149,7 +163,6 @@ def Histograms_time(d_SIT, d_SD, d_SIF, d_SID):
     
 #%% Scatterplots
 def scatter(self, save=False):
-    import matplotlib.pyplot as plt
 
     # Select the observed and satellite variables based on the 'var' attribute
     if self.var == 'SID':
@@ -174,72 +187,211 @@ def scatter(self, save=False):
         satErr = [s + y for s, y in zip(self.satSIFunc, self.satSIFstd)]
 
     obsvar, satvar, obserr, saterr = [], [], [], []
-    fig, ax = plt.subplots(figsize=(35, 35))
-    ax.grid(alpha=0.5, linewidth=2)
+
+    if self.var=='SIT':
+        nrow = 3
+        ncol = 2
+    elif self.var=='SID': 
+        nrow = 3
+        ncol = 2
+    elif self.var=='SD' and sat=='CS2':
+        nrow = 4
+        ncol = 2
+    elif self.var=='SD' and sat=='ENV':
+        nrow = 2
+        ncol = 2
+    else: 
+        nrow = 3
+        ncol = 2
+    
+    if self.var == 'SD' and sat == 'CS2':
+        fig, ax = plt.subplots(nrows=nrow, ncols=ncol, figsize=(35, 40), constrained_layout=True)
+    else:
+        fig, ax = plt.subplots(nrows=nrow, ncols=ncol, figsize=(35, 36), constrained_layout=True)
+    ax = ax.flatten()
+    #fig = plt.figure(figsize=(35, 35))
+    #ax = fig.add_subplot(1, 1, 1, projection='scatter_density')
+    #ax.grid(alpha=0.5, linewidth=2)
 
     print(f'variable : {self.var}')
     print(f'***********************')
 
+    c=-1
+    used_axes = [] 
     for i, name in zip(range(len(obsVar)), self.name):
-        if self.name[i] != 'ASPeCt' and 'SH' not in self.name[i] and 'AWI-ULS' not in self.name[i]:
-            ax.scatter(obsVar[i], satVar[i], color=self.c[i], s=40, alpha=0.4)
+        
+        if self.name[i] != 'ASPeCt' and 'AWI:SH' not in self.name[i]: # and 'AWI-ULS' not in self.name[i]:
+            #print(c)
+            c +=1
+            #ax.scatter_density(obsVar[i], satVar[i], cmap=white_viridis) #, color=self.c[i], s=40, alpha=0.4)
+            mask = np.isfinite(obsVar[i]) & np.isfinite(satVar[i])
+
+            # desired bin width in data units
+            print(self.var)
+            if self.var=='SIT' or self.var=='SID':
+                bin_width_x = 0.1
+                bin_width_y = 0.1
+                
+            if self.var=='SD' or self.var=='FRB':
+                bin_width_x = 0.02
+                bin_width_y = 0.02
+
+            lower_lim_x = np.nanmin(obsVar[i][mask])
+            # if lower_lim_x<0:
+            #     lower_lim_x = 0
+            lower_lim_y = np.nanmin(satVar[i][mask])
+            # if lower_lim_y<0:
+            #     lower_lim_y = 0
+
+            bins_x = int((np.nanmax(obsVar[i][mask]) - lower_lim_x) / bin_width_x)
+            bins_y = int((np.nanmax(satVar[i][mask]) - lower_lim_y) / bin_width_y)
+
+            range_x = np.max(obsVar[i][mask]) - np.min(obsVar[i][mask])
+            range_y = np.max(satVar[i][mask]) - np.min(satVar[i][mask])
+            total_bins = 50  # approximate
+
+            bins_x = int(total_bins * (range_x / (range_x + range_y)))
+            bins_y = int(total_bins * (range_y / (range_x + range_y)))
+                
+
+            
+
+
+            print(bins_x)
+            print(bins_y)
+            h = ax[c].hist2d(obsVar[i][mask], satVar[i][mask], bins=[bins_x, bins_y], cmap=plt.cm.Blues)
+            used_axes.append(ax[c])
+            # add colorbar
+            cbar = fig.colorbar(h[3], ax=ax[c], orientation='vertical', fraction=0.046, pad=0.04)
+            #cbar.set_label('Counts', fontsize=50)
+            cbar.ax.tick_params(labelsize=50)
+            #ax.scatter(obsVar[i], satVar[i], color=self.c[i], s=40, alpha=0.4)
             corr = np.round(pearsonr(obsVar[i][~np.isnan(satVar[i])], satVar[i][~np.isnan(satVar[i])]), 2)
-            print(self.name[i])
             w, b = odr_fit(obsVar[i][~np.isnan(satVar[i])], satVar[i][~np.isnan(satVar[i])],
                            sx=obsErr[i][~np.isnan(satVar[i])], sy=satErr[i][~np.isnan(satVar[i])])
-            print('RMSE', np.round(np.sqrt(mean_squared_error(satVar[i][~np.isnan(satVar[i])],
-                                                               (obsVar[i][~np.isnan(satVar[i])]*w + b))), 2))
-            ax.plot(range(-1, 8), [v*w + b for v in range(-1, 8)], color=self.c[i], linewidth=2,
-                    label=f'{name}, R:{corr[0]}')
-            print('R2', np.round(r2_score(satVar[i][~np.isnan(satVar[i])],
-                                          (obsVar[i][~np.isnan(satVar[i])]*w + b)), 2))
-            print(f' wb: {w} {b}')
-            print(f'len: {len(satVar[i][~np.isnan(satVar[i])])}')
-            obsvar.append(obsVar[i][~np.isnan(satVar[i])])
-            satvar.append(satVar[i][~np.isnan(satVar[i])])
-            obserr.append(obsErr[i][~np.isnan(satVar[i])])
-            saterr.append(satErr[i][~np.isnan(satVar[i])])
+            # print('RMSE', np.round(np.sqrt(mean_squared_error(satVar[i][~np.isnan(satVar[i])],
+            #                                                    (obsVar[i][~np.isnan(satVar[i])]*w + b))), 2))
+            # ax[c].plot(range(-1, 8), [v*w + b for v in range(-1, 8)], color=self.c[i], linewidth=2,
+            #         label=f'{name}, R:{corr[0]}')
 
-    x = np.concatenate(obsvar)
-    y = np.concatenate(satvar)
-    sx = np.concatenate(obserr)
-    sy = np.concatenate(saterr)
-    corr = np.round(pearsonr(x[~np.isnan(y)], y[~np.isnan(y)]), 2)
-    w, b = odr_fit(x, y, sx, sy)
-    ax.plot(range(-1, 8), [v*w + b for v in range(-1, 8)], color='r', label=f'Combined, R:{corr[0]}')
+            if name=="AEM: (AWI + MOSAIC + N-ICE2015)":
+                label = f'AEM: (AWI + MOSAIC \n+ N-ICE2015), R:{corr[0]}'
+            else:
+                label = f'{name}, \nR:{corr[0]}'
 
-    # Add label text based on satellite type (bottom right corner)
-    if self.sat == 'CS2':
-        ax.text(0.92, 0.05, '(b)', transform=ax.transAxes, fontsize=80, fontweight='bold', 
-                va='bottom', ha='right')
-    elif self.sat == 'ENV':
-        ax.text(0.92, 0.05, '(e)', transform=ax.transAxes, fontsize=80, fontweight='bold', 
-                va='bottom', ha='right')
-        
-    # Axis setup
-    if self.var == 'SIT':
-        ax.plot([-0.10, 8], [-0.10, 8], c='k', label='1 to 1 line')
-        ax.set_xlim([-0.10, 7])
-        ax.set_ylim([-0.10, 7])
-    elif self.var == 'SID':
-        ax.plot([-0.10, 5], [-0.10, 5], c='k', label='1 to 1 line')
-        ax.set_xlim([-0.10, 4])
-        ax.set_ylim([-0.10, 4])
-    elif self.var == 'SD':
-        ax.plot([-0.1, 1], [-0.1, 1], c='k')
-        ax.set_xlim([-0.1, 1])
-        ax.set_ylim([-0.1, 1])
-    else:
-        ax.plot([-0.1, 1], [-0.1, 1], c='k')
-        ax.set_xlim([-0.10, 1])
-        ax.set_ylim([-0.10, 1])
+            ax[c].plot(range(-1, 10), [v*w + b for v in range(-1, 10)], color='r', linewidth=2,
+                    label=label)
+            # print('R2', np.round(r2_score(satVar[i][~np.isnan(satVar[i])],
+            #                               (obsVar[i][~np.isnan(satVar[i])]*w + b)), 2))
+            # print(f' wb: {w} {b}')
+            # print(f'len: {len(satVar[i][~np.isnan(satVar[i])])}')
+            if self.name[i] != 'ASPeCt' and 'SH' not in self.name[i] and 'AWI-ULS' not in self.name[i]:
+                obsvar.append(obsVar[i][~np.isnan(satVar[i])])
+                satvar.append(satVar[i][~np.isnan(satVar[i])])
+                obserr.append(obsErr[i][~np.isnan(satVar[i])])
+                saterr.append(satErr[i][~np.isnan(satVar[i])])
 
-    leg = ax.legend(fontsize=50, loc='upper left')
-    for line in leg.get_lines():
-        line.set_linewidth(4.0)
+            # if self.var=='SID' and sat=='CS2' and i== len(ax) -2:
+            #     i = c+1
+            # print(i)
+            # print('---------------')
 
-    ax.set_xlabel('Reference ' + self.var + ' [m]', fontsize=50)
-    ax.set_ylabel('Satellite ' + self.var + ' [m]', fontsize=50)
+
+        if i == len(obsVar) - 1:
+            x = np.concatenate(obsvar)
+            y = np.concatenate(satvar)
+
+            range_x = np.max(x) - np.min(x)
+            range_y = np.max(y) - np.min(y)
+            total_bins = 50  # approximate
+
+            bins_x = int(total_bins * (range_x / (range_x + range_y)))
+            bins_y = int(total_bins * (range_y / (range_x + range_y)))
+            
+            sx = np.concatenate(obserr)
+            sy = np.concatenate(saterr)
+            corr = np.round(pearsonr(x[~np.isnan(y)], y[~np.isnan(y)]), 2)
+            w, b = odr_fit(x, y, sx, sy)
+            h = ax[-1].hist2d(x, y, bins=[bins_x, bins_y],cmap=plt.cm.Blues)
+            ax[-1].plot(range(-1, 15), [v*w + b for v in range(-1, 15)], color='r', label=f'Combined, R:{corr[0]}')
+            used_axes.append(ax[-1])
+            # add colorbar
+            cbar = fig.colorbar(h[3], ax=ax[-1], orientation='vertical', fraction=0.046, pad=0.04)
+            #cbar.set_label('Counts', fontsize=50)
+            cbar.ax.tick_params(labelsize=50)
+            # Add label text based on satellite type (bottom right corner)
+            if self.sat == 'CS2' or (self.var == 'FRB' and self.sat == 'ENV'):
+                ax[-1].text(0.92, 0.05, '(b)', transform=ax[-1].transAxes, fontsize=80, fontweight='bold', 
+                        va='bottom', ha='right')
+            elif self.sat == 'ENV':
+                ax[-1].text(0.92, 0.05, '(e)', transform=ax[-1].transAxes, fontsize=80, fontweight='bold', 
+                        va='bottom', ha='right')
+            
+        # Axis setup
+        #if self.var == 'SIT':
+        # ax[c].plot([-0.10, 8], [-0.10, 8], c='k', label='1 to 1 line')
+        # ax[c].set_xlim([-0.10, 7])
+        # ax[c].set_ylim([-0.10, 7])
+        if i == len(obsVar) - 1:
+            maxval = max(np.nanmax(x), np.nanmax(y))
+            ax[-1].plot([-0.10, maxval], [-0.10, maxval], c='k') #, label='1 to 1 line')
+            ax[-1].set_xlim([-0.10, maxval])
+            ax[-1].set_ylim([-0.10, maxval])
+            #ax[-1].set_xlim([-0.10, maxval])
+            #ax[-1].set_ylim([-0.10, maxval])
+            if self.var == 'SIT':
+                ax[-1].set_xlim([-0.10, 8])
+                ax[-1].set_ylim([-0.10, 8])
+        #else:    
+        try:
+            maxval = max(np.nanmax(obsVar[i]), np.nanmax(satVar[i]))
+            minmaxval = min(np.nanmax(obsVar[i]), np.nanmax(satVar[i]))
+            maxval = (maxval + minmaxval)/2
+            ax[c].plot([-0.10, maxval], [-0.10, maxval], c='k') #, label='1 to 1 line')
+            ax[c].set_xlim([-0.10, maxval]) #np.nanmax(obsVar[i])])
+            ax[c].set_ylim([-0.10, maxval]) #np.nanmax(satVar[i])])
+        except:
+            pass
+
+        # elif self.var == 'SID':
+        #     ax[c].plot([-0.10, 5], [-0.10, 5], c='k', label='1 to 1 line')
+        #     ax[c].set_xlim([-0.10, 4])
+        #     ax[c].set_ylim([-0.10, 4])
+        # elif self.var == 'SD':
+        #     ax[c].plot([-0.1, 1], [-0.1, 1], c='k')
+        #     ax[c].set_xlim([-0.1, 1])
+        #     ax[c].set_ylim([-0.1, 1])
+        # else:
+        #     ax[c].plot([-0.1, 1], [-0.1, 1], c='k')
+        #     ax[c].set_xlim([-0.10, 1])
+        #     ax[c].set_ylim([-0.10, 1])
+
+        #if self.var=='SD' and sat=='CS2':
+        #    loc='lower right'
+        if self.name[i]=='AEM-AWI-FRB':
+            loc='lower right'
+        else: 
+            loc = 'upper left'
+        leg = ax[c].legend(fontsize=60, loc=loc)
+        for line in leg.get_lines():
+            line.set_linewidth(4.0)
+        if i == len(obsVar) - 1:
+            leg = ax[-1].legend(fontsize=60, loc='upper left')
+            for line in leg.get_lines():
+                line.set_linewidth(4.0)
+
+    # After loop: remove unused axes
+    for axis in ax:
+        if axis not in used_axes:
+            axis.remove()
+    # set figure labels
+    fig.supxlabel('Reference ' + self.var + ' [m]', fontsize=70)
+    fig.supylabel('Satellite ' + self.var + ' [m]', fontsize=70)
+
+
+    # Improve layout
+    #plt.tight_layout()
+    fig.subplots_adjust(left=0.01, right=0.15)
 
     if save:
         fig.savefig(f'scatter_{self.sat}_{self.var}.png', bbox_inches='tight')
@@ -381,21 +533,35 @@ def Histograms(self, fig=None, axes=None):
 
     # Create or use existing figure and axes
     if fig is None or axes is None:
-        fig, ax1 = plt.subplots(len(obsVar), figsize=(35, 35), sharex=True)
+        if self.var == 'SD' and sat == 'CS2':
+            print('larger figure')
+            fig, ax1 = plt.subplots(len(obsVar), figsize=(35, 40), sharex=True, constrained_layout=True)
+        else:
+            fig, ax1 = plt.subplots(len(obsVar), figsize=(35, 35), sharex=True, constrained_layout=True)
     else:
         ax1 = axes
 
     for i, name in zip(range(len(obsVar)), self.name):
         threshold = 10  # Adjust this number as needed
 
-        if len(name) > threshold and ':' in name:
+        if (len(name) > threshold and ':' in name):
             # Split roughly in the middle at the space before the unit
             parts = name.split(':')
-            name = parts[0] + ':\n' + ' '.join(parts[1:])
+
+            if len(parts[1]) > threshold:
+                print(len(parts[1]))
+                parts1 = parts[1].split('+')
+                name = parts[0] + ':\n' + '+'.join(parts1[:2]) + '\n' + '+' + ''.join(parts1[2:])
+            else:
+                name = parts[0] + ':\n' + ' '.join(parts[1:])
         
-        ax1[i].set_ylabel(name, fontsize=50)
+        if name=='IMB-CRREL' and self.var=='SD' and sat=='CS2':
+            parts = name.split('-')
+            name = parts[0] + '-\n' + ' '.join(parts[1:])
+        
+        ax1[i].set_ylabel(name, fontsize=60)
         ax1[i].set_yticks([])
-        ax1[i].tick_params(axis="x", labelsize=50)
+        ax1[i].tick_params(axis="x", labelsize=60)
         ax1[i].grid()
 
         ax2 = ax1[i].twinx()
@@ -409,13 +575,13 @@ def Histograms(self, fig=None, axes=None):
             ax2.hist(obsVar[i], bins=bins, rwidth=0.85, alpha=0.7)
             ax2.hist(satVar[i], bins=bins, rwidth=0.85, alpha=0.7)
 
-        ax2.tick_params(axis="y", labelsize=50)
+        ax2.tick_params(axis="y", labelsize=60)
         ax2.axvline(x=np.nanmean(obsVar[i]), c='r', linewidth=8, label='obs mean')
         ax2.axvline(x=np.nanmean(satVar[i]), c='k', linewidth=8, label='sat mean')
         ax2.grid()
 
     # Label for x-axis
-    ax1[-1].set_xlabel(f'{self.var} [m]', fontsize=50)
+    ax1[-1].set_xlabel(f'{self.var} [m]', fontsize=70)
 
     # Adjust satellite label for FRB
     if self.var == 'FRB':
@@ -436,11 +602,19 @@ def Histograms(self, fig=None, axes=None):
     ]
 
     # Super y-label
-    fig.supylabel('count of observations in each bin', fontsize=65, position=(0.97, 0.5))
+    fig.text(
+    1.02,  # X position (1.0 is right edge of axes area)
+    0.5,   # Y position (center vertically)
+    'count of observations in each bin',
+    fontsize=70,
+    va='center',
+    rotation=90
+    )
+    #fig.supylabel('count of observations in each bin', fontsize=65, position=(1.97, 0.5))
 
     # Add bottom-right subplot label
     label = None
-    if self.sat == 'CS2':
+    if self.sat == 'CS2' or (self.var == 'FRB' and self.sat == 'ENV'):
         label = '(c)'
     elif self.sat == 'ENV':
         label = '(f)'
@@ -597,7 +771,7 @@ def Get_name(ifile):
     if 'ULS' not in name:
         name = name.replace("AWI", "-AWI")
         name = name.replace("AWIFRB", "AWI-FRB")
-    name = name.replace("AEMcomb", "AEM: (AWI + MOSAIC)")
+    name = name.replace("AEMcomb", "AEM: (AWI + MOSAIC + N-ICE2015)")
     return name
 
 #%% assign color to name
@@ -635,6 +809,8 @@ def Get_color(name):
         c='k' # orange
     elif 'ULS' in name:
         c='k' # black
+    elif 'N-ICE2015' in name:
+        c = 'k'
     else:
         c='green'
         
@@ -661,7 +837,8 @@ def Append_data(d_SID, d_SIT, d_SD, d_SIF, ifile, name, c, directory, filt=True)
                 else:
                     index = (QFT<4) | (np.isnan(QFT))
                     if name=='SCICEX':
-                        years = np.array([dt.datetime.strptime(dd.decode('utf8'), '%Y-%m-%dT%H:%M:%S').year for dd in ObsData['date'][CRS_ENV]])
+                        #years = np.array([dt.datetime.strptime(dd.decode('utf8'), '%Y-%m-%dT%H:%M:%S').year for dd in ObsData['date'][CRS_ENV]])
+                        years = np.array([dt.datetime.strptime(dd, '%Y-%m-%dT%H:%M:%S').year for dd in ObsData['date'][CRS_ENV]])
                         index = years != 2014
                     if 'AWI-ULS' in name:
                         SID = ObsData['obsSID'][CRS_ENV][index]
@@ -737,7 +914,8 @@ def Append_data(d_SID, d_SIT, d_SD, d_SIF, ifile, name, c, directory, filt=True)
             else:
                 index = QFS<4
                 if name=='IMB-CRREL':
-                    years = np.array([dt.datetime.strptime(dd.decode('utf8'), '%Y-%m-%dT%H:%M:%S').year for dd in ObsData['date'][CRS_ENV]])
+                    #years = np.array([dt.datetime.strptime(dd.decode('utf8'), '%Y-%m-%dT%H:%M:%S').year for dd in ObsData['date'][CRS_ENV]])
+                    years = np.array([dt.datetime.strptime(dd, '%Y-%m-%dT%H:%M:%S').year for dd in ObsData['date'][CRS_ENV]])
                     index = years != 2017
 
             obsDate = ObsData['date'][CRS_ENV][index]
@@ -769,8 +947,9 @@ def Append_data(d_SID, d_SIT, d_SD, d_SIF, ifile, name, c, directory, filt=True)
                 satSIF = satSIF + satSD
             elif 'OIB' in ifile:
                 obsSIF = obsSIF - obsSD
+                #obsSIF[obsSIF<0] = np.nan
                 #satSIF = satSIF + satSD
-            if 'AEM-AWI' in ifile or 'HEM' in ifile:
+            if 'AEM-AWI' in ifile or 'HEM' in ifile or ('NICE' in ifile and 'SIT' in ifile):
                 satSIT = satSIT + satSD # AEM measures SIT+SD
             
             m=~np.isnan(obsSD)
@@ -912,7 +1091,7 @@ def Append_data_nc(d_SID, d_SIT, d_SD, d_SIF, ifile, name, c, directory):
             satSIF = satSIF + satSD
         elif 'OIB' in ifile:
             obsSIF = obsSIF - obsSD
-        if 'AEM-AWI' in ifile:
+        if 'AEM-AWI' in ifile or 'HEM' in ifile or ('NICE' in ifile and 'SIT' in ifile):
             satSIT = satSIT + satSD # AEM measures SIT+SD
             
         m = ~np.isnan(obsSD)
@@ -999,7 +1178,8 @@ def combine_existing_figures_as_images(map_fig, scatter_fig, hist_fig, savepath=
     img_hist = fig_to_array(hist_fig)
 
     # Create a new figure with 1 row and 3 columns
-    fig, axs = plt.subplots(1, 3, figsize=(36, 12))
+
+    fig, axs = plt.subplots(1, 3, figsize=(36, 15))
 
     # Hide axes and show images
     for ax in axs:
@@ -1050,11 +1230,22 @@ def combine_images_vertically(img1_path, img2_path, output_path, dpi=300):
 #%% MAIN
 # Specify the directory containing the data files.
 #directory = "C:/Users/Ida Olsen/Documents/work/RRDPp/satellite/Final_files/final/Arctic/"
-directory = "C:/Users/Ida Olsen/Documents/work/RRDPp/satellite/Final_files/collocated_files-20250519/collocated_files"
+#directory = "C:/Users/Ida Olsen/Documents/work/RRDPp/satellite/Final_files/collocated_files-20250519/collocated_files"
+directory = "/dmidata/users/ilo/projects/RRDPp/satellite/Final_files/collocated_files/dat_files"
+#directory = "/dmidata/users/ilo/projects/RRDPp/satellite/Final_files/collocated_files/nc_files"
+
+# place NH and SH data in a combined folder
+# Remove individual AEM-AWI, MOSAIC-HEM and NICE2015 data for CS2 (these are combined in AEM-comb file)
+# Remove AWI-ULS CS2 file - this file contains insufficient data
+# directory = "/home/ilo/Downloads/CCI_SIT_RRDP_colSatCDR_ver4"
+
+
 # List all files in the specified directory.
 files = os.listdir(directory)
+#import glob
+#files = glob.glob(f'{directory}/*/*.nc')
 
-sat = 'CS2'  # Set the satellite variable (either ENV for Envisat or CS2 for CryoSat2)
+sat = 'ENV'  # Set the satellite variable (either ENV for Envisat or CS2 for CryoSat2)
 filt = False
 
 # Initialize lists to hold data objects and boolean flags.
@@ -1088,11 +1279,15 @@ for ifile, i in zip(files, range(len(files))):
             HS = 'SH'  # Set to Southern Hemisphere if criteria are met
         
         # Append the data from the file to the respective Data objects.
+        #d_SID, d_SIT, d_SD, d_SIF = Append_data_nc(d_SID, d_SIT, d_SD, d_SIF, ifile, name, c, directory=directory) #, filt=filt)
         d_SID, d_SIT, d_SD, d_SIF = Append_data(d_SID, d_SIT, d_SD, d_SIF, ifile, name, c, directory=directory, filt=filt)
 
 
 if sat=='CS2':
-    d_SD.name[d_SD.name=='AEM: (AWI + MOSAIC)'] = 'AEM-AWI'
+    # for SD only AEM-AWI contain data
+    for i, n in enumerate(d_SD.name):
+        if n == "AEM: (AWI + MOSAIC + N-ICE2015)":
+            d_SD.name[i] = "AEM-AWI"
 # Generate histograms for Sea Ice Thickness and Snow Depth.
 fig_hist_SID, ax = Histograms(d_SID, sat)  # Uncomment to generate histograms for Sea Ice Draft
 fig_hist_SIT, ax = Histograms(d_SIT, sat)  # Generate histogram for Sea Ice Thickness
@@ -1110,10 +1305,10 @@ if sat == 'ENV':
 # Define the output file for statistics.
 ofile = f'stats_{sat}_out.txt'
 # Get statistics about the data and save them to the specified output file.
-stats(d_SID, sat, ofile)  # Uncomment to get stats for Sea Ice Draft
-# stats(d_SIT, sat, ofile)  # Get statistics for Sea Ice Thickness
+# stats(d_SID, sat, ofile)  # Uncomment to get stats for Sea Ice Draft
+#stats(d_SIT, sat, ofile)  # Get statistics for Sea Ice Thickness
 # stats(d_SD, sat, ofile)  # Get statistics for Snow Depth
-# stats(d_SIF, sat, ofile)  # Uncomment to get stats for Freeboard
+stats(d_SIF, sat, ofile)  # Uncomment to get stats for Freeboard
 
 # # Generate scatter plots for each data type.
 fig_scatter_SID, ax = scatter(d_SID)  # Scatter plot for Sea Ice Draft
@@ -1148,7 +1343,7 @@ fig_geo_SID, ax = pp.plot_all(d_SID.lat[bool_list_SID], d_SID.lon[bool_list_SID]
 objects += [d_SD, d_SIT, d_SID]
 bool_list += [bool_list_SD, bool_list_SIT, bool_list_SID]
 
-#%%  ANTARCTIC
+#%%  ANTARCTIC 
 # bool_list_SIT = ['ASPeCt' in name or 'SH' in name for name in d_SIT.name]
 # bool_list_SD =  ['SH' in name for name in d_SD.name] #'ASPeCt' in name or 
 # bool_list_SID = ['ASPeCt' in name or 'SH' in name or 'AWI-ULS' in name for name in d_SID.name]
@@ -1169,8 +1364,8 @@ bool_list += [bool_list_SD, bool_list_SIT, bool_list_SID]
 #%% Combine plots
 
 combine_existing_figures_as_images(fig_geo_SID, fig_scatter_SID, fig_hist_SID, savepath=f'{d_SID.var}_{sat}_combined_{filt}.png')
-combine_existing_figures_as_images(fig_geo_SIT, fig_scatter_SIT, fig_hist_SIT, savepath=f'{d_SIT.var}_{sat}_combined_{filt}.png')
-combine_existing_figures_as_images(fig_geo_SD, fig_scatter_SD, fig_hist_SD, savepath=f'{d_SD.var}_{sat}_combined_{filt}.png')
+#combine_existing_figures_as_images(fig_geo_SIT, fig_scatter_SIT, fig_hist_SIT, savepath=f'{d_SIT.var}_{sat}_combined_{filt}.png')
+#combine_existing_figures_as_images(fig_geo_SD, fig_scatter_SD, fig_hist_SD, savepath=f'{d_SD.var}_{sat}_combined_{filt}.png')
 if sat=='ENV':
     combine_existing_figures_as_images(fig_geo_SIF, fig_scatter_SIF, fig_hist_SIF, savepath=f'{d_SIF.var}_{sat}_combined_{filt}.png')
 

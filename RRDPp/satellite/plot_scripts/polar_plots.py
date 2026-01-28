@@ -106,13 +106,13 @@ def plot_all(lat, lon, z, title, c, ylabel='SIT [m]', clim=False,
 
     # Legend
     if any(label == 'SCICEX' for label in ylabel):
-        ax.legend(handles=legend_elements, fontsize=48)
+        ax.legend(handles=legend_elements, fontsize=48, loc='upper right')
     else:
-        ax.legend(markerscale=4, fontsize=48)
+        ax.legend(markerscale=4, fontsize=48, loc='upper right')
 
     # Subplot label in bottom-right
     subplot_label = None
-    if sat == 'CS2':
+    if sat == 'CS2' or ('FRB' in title):
         subplot_label = '(a)'
     elif sat == 'ENV':
         subplot_label = '(d)'
