@@ -27,6 +27,7 @@ import sys
 # -- Third-part modules -- #
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 # -- Proprietary modules -- #
 sys.path.append(os.path.dirname(os.getcwd()))
@@ -45,7 +46,7 @@ gridres = 25000  # m
 directory = '/dmidata/projects/cmems2/C3S/RRDPp/RawData/BPR_ULS_BGEP'
 saveplot = os.path.dirname(os.path.dirname(os.getcwd())) + '/FINAL/BGEP/fig/'
 save_path_data= os.path.dirname(os.path.dirname(os.getcwd())) + '/FINAL/BGEP/final/'
-ofile = os.path.dirname(os.path.dirname(os.getcwd())) +'/FINAL/BGEP/final/ESACCIplus-SEAICE-RRDP2+-SID-BGEP-last.nc'
+ofile = os.path.dirname(os.path.dirname(os.getcwd())) +'/FINAL/BGEP/final/ESACCIplus-SEAICE-RRDP2+-SID-BGEP_test.nc'
 if not os.path.exists(save_path_data):os.makedirs(save_path_data)
 if not os.path.exists(saveplot):os.makedirs(saveplot)
 
@@ -56,11 +57,11 @@ lon=0
 
 count = 0
 datalen = 0
-for dir in ['2017-2021', '2021-2022', '2022-2023']: #sorted(os.listdir(directory)):
+for dir in ['2010-2011']: #2017-2021', '2021-2022', '2022-2023']: #sorted(os.listdir(directory)):
     print(dir)
     dir_data=os.path.join(directory, dir)
     if os.path.isdir(dir_data) and not dir_data.endswith('no_use'):        
-        for ifile in os.listdir(dir_data):
+        for ifile in os.listdir(dir_data)[:1]:
             file=os.path.join(dir_data, ifile)
             #defines variables in output file
             count+=1
@@ -128,6 +129,20 @@ for dir in ['2017-2021', '2021-2022', '2022-2023']: #sorted(os.listdir(directory
             # Avg_draft
             #dataOut.SID_final = np.array([np.nanmean(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
             #dataOut.SID_std = np.array([np.nanstd(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+            
+            fig, ax = plt.subplots(nrows=4, ncols=3, figsize=(12, 12), constrained_layout=True)
+            ax = ax.flatten()
+            for i in range(len(index)-1)[:12]:
+                median_val = np.nanmedian(SID[index[i]:index[i+1]])
+                mean_val   = np.nanmean(SID[index[i]:index[i+1]])
+                ax[i].hist(SID[index[i]:index[i+1]], bins=50, label=f'Median: {median_val:.2f}, Mean: {mean_val:.2f}')
+                ax[i].set_xlabel('SIT [m]')
+                ax[i].set_ylabel('count')
+                ax[i].legend()
+            fig.suptitle('BGEP: Example of monthly distribution of data')
+            plt.savefig(f'sid_test_BGEP.png')   
+            plt.close()
+            
             dataOut.SID_final=np.array([np.nanmedian(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
             dataOut.SID_std = np.array([robust_std(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
 
