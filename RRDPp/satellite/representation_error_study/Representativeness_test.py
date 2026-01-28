@@ -10,6 +10,7 @@ import xarray as xr
 from scipy.stats import pearsonr
 
 import pandas as pd
+import matplotlib.patches as mpatches
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -145,8 +146,10 @@ for plot_var in valid_variables:
     obs_col = f'obs{plot_var}'
     sat_col = f'sat{plot_var}'
 
-    plt.figure(figsize=(12, 9))
-
+    
+    #plt.figure(figsize=(12, 9))
+    fig, ax = plt.subplots(nrows=3, ncols=3, figsize=(12, 12), constrained_layout=True)
+    ax = ax.flatten()
     for i, data in enumerate(datasets):
         if obs_col not in data.dtype.names or sat_col not in data.dtype.names:
             print(f"Skipping {plot_var} for dataset {i} — missing column.")
@@ -183,26 +186,40 @@ for plot_var in valid_variables:
         # , area % {percentage_total_area_CS2:.2f}
         # , area % {percentage_total_area_OIB:.2f}
 
-        plt.scatter(obs_clean, sat_clean, s=10, alpha=0.5, color=colors[i],
-                    label=f'{dataset_labels[i]}\nΔmedian: {median_diff:.2f}, R: {corr:.2f}, Median len SAT: {np.mean(sat_len_clean):.0f}, Median len OBS: {np.mean(obs_len_clean):.0f}')
+        # plt.scatter(obs_clean, sat_clean, s=10, alpha=0.5, color=colors[i],
+        #             label=f'{dataset_labels[i]}\nΔmedian: {median_diff:.2f}, R: {corr:.2f}, Median len SAT: {np.mean(sat_len_clean):.0f}, Median len OBS: {np.mean(obs_len_clean):.0f}')
 
-    # Reference 1:1
-    all_obs_vals = np.concatenate([
-        data[obs_col][~np.isnan(data[obs_col])] for data in datasets if obs_col in data.dtype.names
-    ])
-    if len(all_obs_vals) > 0:
-        min_val, max_val = np.nanmin(all_obs_vals), np.nanmax(all_obs_vals)
-        plt.plot([min_val, max_val], [min_val, max_val], 'k--', lw=1)
+        h = ax[i].hist2d(obs_clean, sat_clean, bins=(30,30), cmap=plt.cm.Blues)
 
-    plt.xlabel(f'Observed {plot_var}', fontsize=14)
-    plt.ylabel(f'Satellite {plot_var}', fontsize=14)
-    plt.title(f'Observed vs Satellite {plot_var} (All Day/Res Combinations): Number of gridcells: {len(obs_clean)}', fontsize=16)
-    plt.legend(fontsize=11, loc='upper left')
-    plt.grid(True)
+        # # make a fake artist for legend
+        # patch = mpatches.Patch(color='blue', alpha=0.5,
+        #     label=f'{dataset_labels[i]}\nΔmedian: {median_diff:.2f}, R: {corr:.2f}, '
+        #         f'Median len SAT: {np.mean(sat_len_clean):.0f}, Median len OBS: {np.mean(obs_len_clean):.0f}')
+        # leg = ax[i].legend(handles=[patch], fontsize=11, loc='upper left')
+        # Reference 1:1
+        all_obs_vals = np.concatenate([
+            data[obs_col][~np.isnan(data[obs_col])] for data in datasets if obs_col in data.dtype.names
+        ])
+        if len(all_obs_vals) > 0:
+            min_val, max_val = np.nanmin(all_obs_vals), np.nanmax(all_obs_vals)
+            ax[i].plot([min_val, max_val], [min_val, max_val], 'k--', lw=1)
+
+        from matplotlib.lines import Line2D
+
+        custom_legend = [Line2D([0], [0], color='w', markerfacecolor='blue', marker='s',
+                                markersize=10, label=f'{dataset_labels[i]}\nΔmedian: {median_diff:.2f}, \nR: {corr:.2f}, \nMedian len SAT: {np.mean(sat_len_clean):.0f}, \nMedian len OBS: {np.mean(obs_len_clean):.0f}')]
+        ax[i].legend(handles=custom_legend, fontsize=11, loc='upper left')
+        ax[i].grid(True)
+
+        #plt.show()
+        ax[i].set_xlim(0,10)
+        ax[i].set_ylim(0,10)
+
+
+    fig.supxlabel(f'Observed {plot_var}', fontsize=14)
+    fig.supylabel(f'Satellite {plot_var}', fontsize=14)
+    fig.suptitle(f'Observed vs Satellite {plot_var} (All Day/Res Combinations): Number of gridcells: {len(obs_clean)}', fontsize=16)
     plt.tight_layout()
-    #plt.show()
-    plt.xlim(0,10)
-    plt.ylim(0,10)
     plt.savefig(f'scatter_{name}_{plot_var}_all_filter_{filt}.png')  # Optional saving
 
 
