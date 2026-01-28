@@ -75,11 +75,18 @@ if len(file)>1:
     if OBSID=='Nansen_legacy': # run first 0 then 1
         infile = f"{inpath}/{file[1]}"
         Functions.netcdf_to_txt(infile, infile.replace('.nc', '.dat')) # convert to .dat file
-        obsfile = infile.replace('.nc', '.dat') 
+        obsfile = infile.replace('.nc', '.dat')
+    if OBSID=='NICE':
+        infile = f"{inpath}/{file[1]}"
+        Functions.netcdf_to_txt(infile, infile.replace('.nc', '.dat')) # convert to .dat file
+        obsfile = infile.replace('.nc', '.dat')
+
 else:
     infile = f"{inpath}/{file[0]}" 
     Functions.netcdf_to_txt(infile, infile.replace('.nc', '.dat')) # convert to .dat file
     obsfile = infile.replace('.nc', '.dat')
+
+print(obsfile)
 
 if 'SID' in file[0]: #OBSID=='SCICEX' or OBSID=='BGEP' or OBSID=='TRANSDRIFT' or OBSID=='AWI-ULS' or OBSID=='NPEO' or OBSID=='NPI':
     var = ['SID']

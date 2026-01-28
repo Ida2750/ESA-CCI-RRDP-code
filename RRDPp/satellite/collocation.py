@@ -78,12 +78,15 @@ for nc_file in nc_files:
     elif OBSID=='SB_AWI' or OBSID=='OIB':
         names.append(f'ESACCIplus-SEAICE-RRDP2+-SIT-{OBSID}-{HEMISPHERE}')
         vars.append([ 'SIT', 'SD', 'FRB'])
+    elif OBSID=='NICE' and 'SD' in os.path.basename(nc_file):
+        names.append(f'ESACCIplus-SEAICE-RRDP2+-SD-{OBSID}')
+        vars.append([ 'SIT', 'SD', 'FRB'])
     else:
         names.append(f'ESACCIplus-SEAICE-RRDP2+-SIT-{OBSID}')
         vars.append([ 'SIT', 'SD', 'FRB'])
 
-print(dat_files)
-dat_files = [dat_files[0]]
+#print(dat_files)
+#dat_files = [dat_files[1]]
 print(dat_files)
 for obsfile, name, var in zip(dat_files, names, vars):
 
