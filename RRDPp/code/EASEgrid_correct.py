@@ -150,8 +150,14 @@ class Gridded:
         import warnings
         import datetime as dt
         from datetime import timedelta
+        import matplotlib.pyplot as plt
         import numpy.ma as ma
         
+        plotcounter = 0
+        name = 'SCICEX'
+        fig, ax = plt.subplots(nrows=4, ncols=4, figsize=(12, 12), constrained_layout=True)
+        ax = ax.flatten()
+
         # for spatial QF - find average frequency of measurements
         # freq = np.mean(np.diff(t)).total_seconds()
         # print(f'freq: {1/freq}')
@@ -468,7 +474,26 @@ class Gridded:
                                     avgLat = np.mean(lat)
                                     avgLon = np.mean(lon)
                                     avgDT = np.mean(dt0)
-                                    avgTime = t0+timedelta(seconds=avgDT)                 
+                                    avgTime = t0+timedelta(seconds=avgDT) 
+
+                                    # ### plot distributions
+                                    # plotcounter += 1
+                                    # if any(np.isfinite(sd)):
+                                    #     plt.figure()
+                                    #     plt.hist(sd, bins=50)
+                                    #     plt.title(f'Median: {np.nanmedian(sd)}, Mean: {np.nanmean(sd)}')
+                                    #     plt.savefig(f'sd_test_{name}_{plotcounter}.png')   
+                                    #     plt.close()
+
+                                    # if any(np.isfinite(sit)):
+                                    #     plt.figure()
+                                    #     plt.hist(sit, bins=50)
+                                    #     plt.title(f'Median: {np.nanmedian(sit)}, Mean: {np.nanmean(sit)}')
+                                    #     plt.savefig(f'sit_test_{name}_{plotcounter}.png')   
+                                    #     plt.close()
+                                    ### ------------ ###
+
+
 
                                 # determine quality flags
 
@@ -587,6 +612,58 @@ class Gridded:
                             avgLon = np.mean(lon)
                             avgDT = np.mean(dt0)
                             avgTime = t0+timedelta(seconds=avgDT)    
+
+
+                            ### plot distributions
+                            if any(np.isfinite(sit)):
+                                if plotcounter<16:
+                                    median_val = np.nanmedian(sit)
+                                    mean_val   = np.nanmean(sit)
+                                    ax[plotcounter].hist(sit, bins=50, label=f'Median: {median_val:.2f}, Mean: {mean_val:.2f}')
+                                    ax[plotcounter].set_xlabel('SIT [m]')
+                                    ax[plotcounter].set_ylabel('count')
+                                    ax[plotcounter].legend()
+                                
+                                if plotcounter == 16:
+                                    fig.suptitle(f'{name}: Example of gricell distribution of data')
+                                    plt.savefig(f'sit_test_{name}.png')   
+                                    plt.close()
+
+                                plotcounter += 1
+
+
+                            ### plot distributions
+                            if any(np.isfinite(sd)):
+                                if plotcounter<16:
+                                    median_val = np.nanmedian(sd)
+                                    mean_val   = np.nanmean(sd)
+                                    ax[plotcounter].hist(sd, bins=50, label=f'Median: {median_val:.2f}, Mean: {mean_val:.2f}')
+                                    ax[plotcounter].set_xlabel('SID [m]')
+                                    ax[plotcounter].set_ylabel('count')
+                                    ax[plotcounter].legend()
+                                
+                                if plotcounter == 16:
+                                    fig.suptitle(f'{name}: Example of gricell distribution of data')
+                                    plt.savefig(f'sid_test_{name}.png')   
+                                    plt.close()
+
+                                plotcounter += 1
+
+
+                            # if any(np.isfinite(sd)):
+                            #     plt.figure()
+                            #     plt.hist(sd, bins=50)
+                            #     plt.title(f'Median: {np.nanmedian(sd)}, Mean: {np.nanmean(sd)}')
+                            #     plt.savefig(f'sd_test_{name}_{plotcounter}.png')   
+                            #     plt.close()
+
+                            # if any(np.isfinite(sit)):
+                            #     plt.figure()
+                            #     plt.hist(sit, bins=50)
+                            #     plt.title(f'Median: {np.nanmedian(sit)}, Mean: {np.nanmean(sit)}')
+                            #     plt.savefig(f'sit_test_{name}_{plotcounter}.png')   
+                            #     plt.close()
+                            ### ------------ ###
 
                         # determine quality flags
                         ################# TEMPORAL FLAG START ##################

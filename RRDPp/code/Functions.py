@@ -10,9 +10,9 @@ import os
 
 # Third-party imports
 import numpy as np
-import cartopy.crs as ccrs
-import matplotlib.pyplot as plt
-import cartopy.feature as cfeature
+#import cartopy.crs as ccrs
+#import matplotlib.pyplot as plt
+#import cartopy.feature as cfeature
 import datetime as dt
 import xarray as xr
 
@@ -602,7 +602,7 @@ def netcdf_to_txt(nc_path, dat_path):
 
     print(f"✅ .DAT file saved to: {dat_path}")
 
-def txt_to_netcdf(directory, ifile, primary, datasource, key_variables):
+def txt_to_netcdf(directory, ifile, primary, datasource, key_variables, outdir=''):
     
     """
     Create netCDF file with processed information from all files belonging to the datasource
@@ -619,7 +619,9 @@ def txt_to_netcdf(directory, ifile, primary, datasource, key_variables):
     ds : xarray dataset.
 
     """
-    
+    if outdir=='':
+        outdir=directory
+
     ObsData  = np.genfromtxt(os.path.join(directory, ifile),dtype=None,names=True, encoding=None)
 
     if 'ERS1' in ifile or 'ERS2' in ifile:
@@ -653,6 +655,7 @@ def txt_to_netcdf(directory, ifile, primary, datasource, key_variables):
             )
     
     elif 'ENV' in ifile or 'CS2' in ifile:
+        print(primary)
         if primary!='SID':
             # Create dataset
             ds = xr.Dataset(
@@ -663,34 +666,38 @@ def txt_to_netcdf(directory, ifile, primary, datasource, key_variables):
                     lon = (['time'], ObsData['lon']),
                     
                     obsSD = (['time'], ObsData['obsSD']),
-                    obsSDstd = (['time'], ObsData['obsSDstd']),
-                    obsSDln = (['time'], ObsData['obsSDln']),
-                    obsSDunc = (['time'], ObsData['obsSDunc']),
+                    obsSDstd = (['time'], ObsData['obsSD_std']),
+                    obsSDln = (['time'], ObsData['obsSD_ln']),
+                    obsSDunc = (['time'], ObsData['obsSD_unc']),
     
                     obsSIT = (['time'], ObsData['obsSIT']),
-                    obsSITstd = (['time'], ObsData['obsSITstd']),
-                    obsSITln = (['time'], ObsData['obsSITln']),
-                    obsSITunc = (['time'], ObsData['obsSITunc']),
+                    obsSITstd = (['time'], ObsData['obsSIT_std']),
+                    obsSITln = (['time'], ObsData['obsSIT_ln']),
+                    obsSITunc = (['time'], ObsData['obsSIT_unc']),
     
-                    obsFRB = (['time'], ObsData['obsFRB']),
-                    obsFRBstd = (['time'], ObsData['obsFRBstd']),
-                    obsFRBln = (['time'], ObsData['obsFRBln']),
-                    obsFRBunc = (['time'], ObsData['obsFRBunc']),
+                    obsFRB = (['time'], ObsData['obsSIF']),
+                    obsFRBstd = (['time'], ObsData['obsFRB_std']),
+                    obsFRBln = (['time'], ObsData['obsFRB_ln']),
+                    obsFRBunc = (['time'], ObsData['obsFRB_unc']),
     
                     satSD = (['time'], ObsData['satSD']),
-                    satSDstd = (['time'], ObsData['satSDstd']),
-                    satSDln = (['time'], ObsData['satSDln']),
-                    satSDunc = (['time'], ObsData['satSDunc']),
+                    satSDstd = (['time'], ObsData['satSD_std']),
+                    satSDln = (['time'], ObsData['satSD_ln']),
+                    satSDunc = (['time'], ObsData['satSD_unc']),
     
                     satSIT = (['time'], ObsData['satSIT']),
-                    satSITstd = (['time'], ObsData['satSITstd']),
-                    satSITln = (['time'], ObsData['satSITln']),
-                    satSITunc = (['time'], ObsData['satSITunc']),
+                    satSITstd = (['time'], ObsData['satSIT_std']),
+                    satSITln = (['time'], ObsData['satSIT_ln']),
+                    satSITunc = (['time'], ObsData['satSIT_unc']),
     
-                    satFRB = (['time'], ObsData['satFRB']),
-                    satFRBstd = (['time'], ObsData['satFRBstd']),
-                    satFRBln = (['time'], ObsData['satFRBln']),
-                    satFRBunc = (['time'], ObsData['satFRBunc']),
+                    satFRB = (['time'], ObsData['satSIF']),
+                    satFRBstd = (['time'], ObsData['satFRB_std']),
+                    satFRBln = (['time'], ObsData['satFRB_ln']),
+                    satFRBunc = (['time'], ObsData['satFRB_unc']),
+
+                    QFT = (['time'], ObsData['QFT']),
+                    QFS = (['time'], ObsData['QFS']),
+                    #index = (['time'], ObsData['index']),
     
                     ),
                 # coordinates
@@ -719,15 +726,18 @@ def txt_to_netcdf(directory, ifile, primary, datasource, key_variables):
                     lon = (['time'], ObsData['lon']),
                     
                     obsSID = (['time'], ObsData['obsSID']),
-                    obsSIDstd = (['time'], ObsData['obsSIDstd']),
-                    obsSIDln = (['time'], ObsData['obsSIDln']),
-                    obsSIDunc = (['time'], ObsData['obsSIDunc']),
+                    obsSIDstd = (['time'], ObsData['obsSID_std']),
+                    obsSIDln = (['time'], ObsData['obsSID_ln']),
+                    obsSIDunc = (['time'], ObsData['obsSID_unc']),
     
                     satSID = (['time'], ObsData['satSID']),
-                    satSIDstd = (['time'], ObsData['satSIDstd']),
-                    satSIDln = (['time'], ObsData['satSIDln']),
-                    satSIDunc = (['time'], ObsData['satSIDunc']),
-    
+                    satSIDstd = (['time'], ObsData['satSID_std']),
+                    satSIDln = (['time'], ObsData['satSID_ln']),
+                    satSIDunc = (['time'], ObsData['satSID_unc']),
+
+                    QFT = (['time'], ObsData['QFT']),
+                    QFS = (['time'], ObsData['QFS']),
+                    #index = (['time'], ObsData['index']),
                     ),
                 # coordinates
                 coords ={
@@ -791,7 +801,19 @@ def txt_to_netcdf(directory, ifile, primary, datasource, key_variables):
             ds['satSIDunc'].attrs['standard_name'] = 'Satellite sea ice draft uncertainty'
             ds['satSIDunc'].attrs['long_name'] = 'Uncertainty in satellite sea ice draft observations'
             ds['satSIDunc'].attrs['unit'] = 'meters (m)'
-                    
+
+            ds['QFT'].attrs['standard_name'] = 'Temporal representativeness quality flag'
+            ds['QFT'].attrs['long_name'] = 'Quality flag describing the temporal representativeness of reference observations'           
+            #ds['QFT'].attrs['unit'] = ''
+
+            ds['QFS'].attrs['standard_name'] = 'Spatial representativeness quality flag'
+            ds['QFS'].attrs['long_name'] = 'Quality flag describing the spatial representativeness of reference observations'
+            #ds['QFS'].attrs['unit'] = ''
+
+            #ds['index'].attrs['standard_name'] = 'Index'
+            #ds['index'].attrs['long_name'] = 'KDstruct Index with the collocated satellite observatios within 25km (NH) or 50km (SH)'
+            #ds['index'].attrs['unit'] = 'meters (m)'
+
         else:
             ## Sea Ice Thickness variable attributes
             ds['obsSIT'].attrs['standard_name'] = 'Reference sea ice thickness'
@@ -889,6 +911,18 @@ def txt_to_netcdf(directory, ifile, primary, datasource, key_variables):
             ds['satFRBunc'].attrs['long_name'] = 'Uncertainty in satellite freeboard observations'
             ds['satFRBunc'].attrs['unit'] = 'meters (m)'
 
+            ds['QFT'].attrs['standard_name'] = 'Temporal representativeness quality flag'
+            ds['QFT'].attrs['long_name'] = 'Quality flag describing the temporal representativeness of reference observations'           
+            #ds['QFT'].attrs['unit'] = ''
+
+            ds['QFS'].attrs['standard_name'] = 'Spatial representativeness quality flag'
+            ds['QFS'].attrs['long_name'] = 'Quality flag describing the spatial representativeness of reference observations'
+            #ds['QFS'].attrs['unit'] = ''
+
+            #ds['index'].attrs['standard_name'] = 'Index'
+            #ds['index'].attrs['long_name'] = 'KDstruct Index with the collocated satellite observatios within 25km (NH) or 50km (SH)'
+            #ds['index'].attrs['unit'] = 'meters (m)'
+
     ds['time'].attrs['standard_name'] = 'time'
     ds['time'].attrs['long_name'] = 'reference time of data product in UTC'
     ds['time'].attrs['format'] = '%Y%m%dT%H%M%s'
@@ -907,15 +941,14 @@ def txt_to_netcdf(directory, ifile, primary, datasource, key_variables):
     #print(ds)
     # Save NC file
     
-    ofile = ifile.split('.')[0] + '.nc'
+    ofile = outdir + '/' + os.path.basename(ifile).split('.')[0] + '.nc'
     #print(ofile)
     
-    for var in ds:
-        ds[var].encoding.update(dict(zlib=True, complevel=6))
+    for var in ds: 
+        if var!='date':
+            ds[var].encoding.update(dict(zlib=True, complevel=6))
     ds.to_netcdf(ofile, format="NETCDF4", mode="w")
     ds.close()
-    
-    print(ds)
     
     print(f'File {ofile} created')
 
