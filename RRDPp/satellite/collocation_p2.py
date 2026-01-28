@@ -106,11 +106,13 @@ def collocation_part2(obsfile, CSfile, count, ofile, var, HS='NH', days=30, reso
         CSdraft[CSdraft>8] = np.nan
         CSdata['sit'][CSdata['sit']>10] = np.nan
         CSdata['sif'][CSdata['sif']>2] = np.nan
+        #CSdata['sif'][(CSdata['sif'] + CSdata['sd'])>2] = np.nan
         CSdata['sd'][CSdata['sd']>2] = np.nan
 
         CSdraft[CSdraft<0] = np.nan
         CSdata['sit'][CSdata['sit']<0] = np.nan
         CSdata['sif'][CSdata['sif']<0] = np.nan
+        #CSdata['sif'][(CSdata['sif'] + CSdata['sd'])<0] = np.nan
         CSdata['sd'][CSdata['sd']<0] = np.nan
 
     elif 'ERS' in CSfile:
