@@ -39,7 +39,7 @@ dtint = 30  # days per mean
 save_path_data = os.path.dirname(os.path.dirname(os.getcwd())) + '/FINAL/AEM-AWI/final/'
 if not os.path.exists(save_path_data):os.makedirs(save_path_data)
 saveplot = os.path.dirname(os.path.dirname(os.getcwd())) + '/FINAL/AEM-AWI/fig/'
-ofile = os.path.dirname(os.path.dirname(os.getcwd())) +'/FINAL/AEM-AWI/final/ESACCIplus-SEAICE-RRDP2+-SIT-AEM-AWI-last.nc'
+ofile = os.path.dirname(os.path.dirname(os.getcwd())) +'/FINAL/AEM-AWI/final/ESACCIplus-SEAICE-RRDP2+-SIT-AEM-AWI-test.nc'
 #directory = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd())))) +'/RRDPp/RawData/AEM_AWI'
 directory = '/dmidata/projects/cmems2/C3S/RRDPp/RawData/AEM_AWI'
 

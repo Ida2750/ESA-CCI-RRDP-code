@@ -6,9 +6,9 @@ Make datetime array, from header information
 # -- File info -- #
 __author__ = 'Ida Olsen'
 __contributors__ = 'Henriette Skorup'
-__contact__ = ['ilo@dmi.dk']
-__version__ = '2'
-__date__ = '2025-05-26'
+__contact__ = ['s174020@student.dtu.dk']
+__version__ = '0'
+__date__ = '2022-01-25'
 
 
 def Get_date(file, ifile):
@@ -44,4 +44,5 @@ def Get_date(file, ifile):
     if date_start == date_end:
         t = dt.datetime.strptime(date_start, "%Y%m%d%H%M%S")
         date = [t + dt.timedelta(seconds=i) for i in range(len(latitude))]  # add progressively 1 second to ensure that date changes
+    
     return date
