@@ -8,7 +8,7 @@ The Climate Change Initiative sea ice thickness Round Robin Data Package (CCI SI
 This repository provides the code used for processing from raw reference data to the final gridded product and the code used for co-locating reference data to satellite measurements from Envisat, CryoSat-2, ERS-1 and ERS-2. For examples of use, further information and inspiration we refer to the belonging paper [DOI:10.5194/essd-2024-234](https://doi.org/10.5194/essd-2024-234).
 
 # How to Install and Run the Project:
-The project was made using python version 3.13.3, along with the packages: numpy, matplotlib, cartopy, PyPDF2, netcdf4, pandas and more (see Software Environment and Dependencies)
+The project was made using python version 3.13.3, along with the packages: numpy, matplotlib, cartopy, PyPDF2, netcdf4, pandas and more (see associated rrdp.yml file to copy the environment structure)
 To use the project download relevant reference data and Satellite data (see table 3 in DOI:10.5194/essd-2024-234) and see the How to Use the Project section for more information.
 
 # The structure of the project:
@@ -21,26 +21,23 @@ The structure of the project is illustrated on the diagrams below, with the blue
 # How to Use the Project:
 Currently the *../RRDPp/FINAL*, *../RRDPp/satellite/Final_files* and *../RRDPp/RawData* folders are left intentionally blank.
 
-Data for the  *../RRDPp/FINAL* and *../RRDPp/satellite/Final_files* folders are readily available for use from DTU DATA
-DOI: 10.11583/DTU.23735679 \
+Data for the  *../RRDPp/FINAL* and *../RRDPp/satellite/Final_files* folders are readily available for use from DTU DATA ([DOI:10.11583/DTU.23735679](https://doi.org/10.11583/DTU.24787341))
 
 The *../RRDPp/code* folder contains the scripts for the individual campaigns which processes the raw data to the final gridded data.\
 A folder with the naming convention of the *../RRDPp/code* folder should be made in the *../RRDPp/FINAL* folder.\
 
 In the ../RRDPp/RawData folder the user should locate raw data in folders following the naming convention of the *../RRDPp/code* folder.\ 
-Individual links to raw data are available from the belonging publication in table 3 DOI:10.5194/essd-2024-234 \
+Individual links to raw data are available from the belonging publication in table 3 [preprint] [DOI:10.5194/essd-2024-234](https://doi.org/10.5194/essd-2024-234)
 
 The *../RRDPp/satellite* folder contains scripts that are related to co-locating data from CryoSat-2, ENVISAT, ERS-1 and ERS-2 to data in the *../RRDPp/FINAL* folder.\
 
-To do the co-location reference data from the CCI SIT RRDP DOI: 10.11583/DTU.23735679 and satelitte data from table 3 DOI:10.5194/essd-2024-234 must be downloaded.
-
-For an overview of the satellite folder see the diagram above.\
+To do the co-location reference data from the CCI SIT RRDP ([DOI:10.11583/DTU.23735679](https://doi.org/10.11583/DTU.24787341)) and satelitte data from table 3 [preprint] [DOI:10.5194/essd-2024-234](https://doi.org/10.5194/essd-2024-234) must be downloaded.
 
 To change the spatial and temporal resolutions from the default (30 days and 25km (northern hemisphere) and 50km (southern hemisphere)) one must adjust the parameters gridres = 25000  # grid resolution and
 dtint = 30  # days per mean, which are defined in the start of the processing scripts. For collocation the script collocate.py must be adjusted by defining the days and resolution parameters in the function collocation_part2.
 
 # Credits
-This project was made Henriette Skourup and Ida Olsen. Data used in the project were gathered by several external organisations. 
+This project was made Henriette Skourup and Ida Lundtorp Olsen. Data used in the project were gathered by several external organisations. 
 For data availability, credits and acknowledgements, please see the publication linked to this project and remember to acknowledge and 
 cite relevant data sources when using data from this project
 
@@ -55,35 +52,3 @@ and the acknowledgement:
 This datapackage and code was made by Ida Olsen and Henriette Skourup from the Technical University of Denmark
 
 You are also required to provide a citation to the raw data sources, when using this data. 
-
-
-# Software Environment and Dependencies
-
-The code was developed and tested using **Python 3.13** with packages installed from **conda-forge**.
-- python (3.13.3)
-- numpy (2.2.5)
-- scipy (1.16.3)
-- pandas (2.2.3)
-- xarray (2025.11.0)
-- netcdf4 (1.7.3)
-- cftime (1.6.4)
-- matplotlib (3.10.1)
-- cartopy (0.24.0)
-- shapely (2.1.0)
-- pyproj (3.7.1)
-- mpl-scatter-density (0.8)
-- pillow (11.1.0)
-- contourpy (1.3.2)
-- proj (9.6.0)
-- geos (3.13.1)
-- haversine (2.9.0)
-- scikit-learn (1.7.1)
-- joblib (1.5.1)
-- fast-histogram (0.14)
-- packaging (25.0)
-- python-dateutil (2.9.0.post0)
-- pytz (2025.2)
-- six (1.17.0)
-- typing_extensions (4.15.0)
-- pypdf2 (3.0.1)
-- pyshp (2.3.1)
