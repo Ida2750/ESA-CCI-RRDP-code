@@ -5,13 +5,10 @@ Code for sea ice thickness reference measurements
 # Project Description:
 The Climate Change Initiative sea ice thickness Round Robin Data Package (CCI SIT RRDP) is a set of space delimitted ASCII files which contain a range of relevant reference sea ice variables, including sea ice thickness, snow depth, draft and freeboard, along with snow depth and density from Warren climatology (1999) for Arctic. Sea ice surface temperature and air temperature is also provided when available. The data has been gridded into a 25 by 25 km product for Arctic and 50 by 50 km for Antarctic using EASE-grid 2.0 and contains monthly averages of the given gridpoint. Reference data from autonomous buoys, moorings, submarines, ships (ice breakers), airborne campaigns (radar/laser altimetry and electromagnetic induction system) and in-situ measurements is provided in the final dataset. This dataset is available from DTU DATA ([DOI:10.11583/DTU.23735679](https://doi.org/10.11583/DTU.24787341)) and described in the publication [preprint] [DOI:10.5194/essd-2024-234](https://doi.org/10.5194/essd-2024-234).
 
-This repository provides the code used for processing from raw reference data to the final gridded product and the code used for co-locating reference data to satellite measurements from Envisat, CryoSat-2, ERS-1 and ERS-2. For examples of use, further information and inspiration we refer to the belonging paper: *"A first approach towards dual-hemisphere sea ice reference measurements from multiple data sources repurposed for evaluation and product intercomparison of satellite altimetry"* with DOI:10.5194/essd-2024-234
-We highly recommend potential users of the repository to read the paper.
+This repository provides the code used for processing from raw reference data to the final gridded product and the code used for co-locating reference data to satellite measurements from Envisat, CryoSat-2, ERS-1 and ERS-2. For examples of use, further information and inspiration we refer to the belonging paper [DOI:10.5194/essd-2024-234](https://doi.org/10.5194/essd-2024-234).
 
 # How to Install and Run the Project:
-The project was made using python version 3.9.13, along with the packages: numpy, matplotlib, cartopy, PyPDF2, netcdf4, pandas and datetime.
-Furthermore, NASA's EaseGrid-2.0 was used and modified to make the gridded final data. This script is found in the code folder under the name: EASEgrid_correct
-
+The project was made using python version 3.13.3, along with the packages: numpy, matplotlib, cartopy, PyPDF2, netcdf4, pandas and more (see Software Environment and Dependencies)
 To use the project download relevant reference data and Satellite data (see table 3 in DOI:10.5194/essd-2024-234) and see the How to Use the Project section for more information.
 
 # The structure of the project:
@@ -58,3 +55,53 @@ and the acknowledgement:
 This datapackage and code was made by Ida Olsen and Henriette Skourup from the Technical University of Denmark
 
 You are also required to provide a citation to the raw data sources, when using this data. 
+
+
+# Software Environment and Dependencies
+
+The code was developed and tested using **Python 3.13** with packages installed from **conda-forge**.
+
+### Core Python Packages
+
+- python (3.13.3)
+- numpy (2.2.5)
+- scipy (1.16.3)
+- pandas (2.2.3)
+- xarray (2025.11.0)
+- netcdf4 (1.7.3)
+- cftime (1.6.4)
+
+### Plotting and Visualization
+
+- matplotlib (3.10.1)
+- cartopy (0.24.0)
+- shapely (2.1.0)
+- pyproj (3.7.1)
+- mpl-scatter-density (0.8)
+- pillow (11.1.0)
+- contourpy (1.3.2)
+
+### Geospatial and Climate Utilities
+
+- proj (9.6.0)
+- geos (3.13.1)
+- haversine (2.9.0)
+
+### Data Processing and Analysis
+
+- scikit-learn (1.7.1)
+- joblib (1.5.1)
+- fast-histogram (0.14)
+
+### General Utilities
+
+- packaging (25.0)
+- python-dateutil (2.9.0.post0)
+- pytz (2025.2)
+- six (1.17.0)
+- typing_extensions (4.15.0)
+
+### Optional / Supporting Packages
+
+- pypdf2 (3.0.1)
+- pyshp (2.3.1)
