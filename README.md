@@ -60,9 +60,6 @@ You are also required to provide a citation to the raw data sources, when using 
 # Software Environment and Dependencies
 
 The code was developed and tested using **Python 3.13** with packages installed from **conda-forge**.
-
-### Core Python Packages
-
 - python (3.13.3)
 - numpy (2.2.5)
 - scipy (1.16.3)
@@ -70,9 +67,6 @@ The code was developed and tested using **Python 3.13** with packages installed 
 - xarray (2025.11.0)
 - netcdf4 (1.7.3)
 - cftime (1.6.4)
-
-### Plotting and Visualization
-
 - matplotlib (3.10.1)
 - cartopy (0.24.0)
 - shapely (2.1.0)
@@ -80,28 +74,16 @@ The code was developed and tested using **Python 3.13** with packages installed 
 - mpl-scatter-density (0.8)
 - pillow (11.1.0)
 - contourpy (1.3.2)
-
-### Geospatial and Climate Utilities
-
 - proj (9.6.0)
 - geos (3.13.1)
 - haversine (2.9.0)
-
-### Data Processing and Analysis
-
 - scikit-learn (1.7.1)
 - joblib (1.5.1)
 - fast-histogram (0.14)
-
-### General Utilities
-
 - packaging (25.0)
 - python-dateutil (2.9.0.post0)
 - pytz (2025.2)
 - six (1.17.0)
 - typing_extensions (4.15.0)
-
-### Optional / Supporting Packages
-
 - pypdf2 (3.0.1)
 - pyshp (2.3.1)
