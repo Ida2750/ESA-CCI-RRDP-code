@@ -17,6 +17,26 @@ The structure of the project is illustrated on the diagrams below, with the blue
 
 ![image](https://github.com/Idalundtorp/ESACCI-/assets/70795109/b0277fd5-89d6-4725-821b-92b5cd421c4d)
 
+flowchart TD
+    A[ESA-CCI-RRDP-code] --> B[RRDPp]
+    
+    B --> C[code]
+    B --> D[RawData]
+    B --> E[FINAL]
+    B --> F[satellite]
+
+    C --> C1[Campaign folders]
+    C1 --> C2[Scripts for gridding & processing]
+
+    D --> D1[Raw reference data]
+    D1 --> D2[Campaign-based folder structure]
+
+    F --> F1[Collocation scripts]
+    F --> F2[Satellite subsets]
+    F --> F3[Collocated outputs]
+
+    E --> E1[Final gridded products]
+
 
 # How to Use the Project:
 Currently the *../RRDPp/FINAL*, *../RRDPp/satellite/Final_files* and *../RRDPp/RawData* folders are left intentionally blank.
