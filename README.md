@@ -11,33 +11,6 @@ This repository provides the code used for processing from raw reference data to
 The project was made using python version 3.13.3, along with the packages: numpy, matplotlib, cartopy, PyPDF2, netcdf4, pandas and more (see associated rrdp.yml file to copy the environment structure)
 To use the project download relevant reference data and Satellite data (see table 3 in DOI:10.5194/essd-2024-234) and see the How to Use the Project section for more information.
 
-# The structure of the project:
-The structure of the project is illustrated on the diagrams below, with the blue boxes showning folders and pink boxes showing scripts. Black arrows indicate folder/subfolder connections, whereas the green lines show data/code dependencies. The content of the satellite folder is shown individually.
-![image](https://github.com/Idalundtorp/ESACCI-/assets/70795109/f52f888f-4e12-42a5-947f-6852c2dbf021)
-
-![image](https://github.com/Idalundtorp/ESACCI-/assets/70795109/b0277fd5-89d6-4725-821b-92b5cd421c4d)
-
-flowchart TD
-    A[ESA-CCI-RRDP-code] --> B[RRDPp]
-    
-    B --> C[code]
-    B --> D[RawData]
-    B --> E[FINAL]
-    B --> F[satellite]
-
-    C --> C1[Campaign folders]
-    C1 --> C2[Scripts for gridding & processing]
-
-    D --> D1[Raw reference data]
-    D1 --> D2[Campaign-based folder structure]
-
-    F --> F1[Collocation scripts]
-    F --> F2[Satellite subsets]
-    F --> F3[Collocated outputs]
-
-    E --> E1[Final gridded products]
-
-
 # How to Use the Project:
 Currently the *../RRDPp/FINAL*, *../RRDPp/satellite/Final_files* and *../RRDPp/RawData* folders are left intentionally blank.
 
