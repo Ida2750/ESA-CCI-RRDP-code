@@ -22,12 +22,19 @@ A folder with the naming convention of the *../RRDPp/code* folder should be made
 In the ../RRDPp/RawData folder the user should locate raw data in folders following the naming convention of the *../RRDPp/code* folder.
 Individual links to raw data are available from the belonging publication in table 3 [preprint] [DOI:10.5194/essd-2024-234](https://doi.org/10.5194/essd-2024-234)
 
-The *../RRDPp/satellite* folder contains scripts that are related to co-locating data from CryoSat-2, ENVISAT, ERS-1 and ERS-2 to data in the *../RRDPp/FINAL* folder.
+The *../RRDPp/satellite* folder contains scconda env create -f environment.ymlripts that are related to co-locating data from CryoSat-2, ENVISAT, ERS-1 and ERS-2 to data in the *../RRDPp/FINAL* folder.
 
 To do the co-location reference data from the CCI SIT RRDP ([DOI:10.11583/DTU.23735679](https://doi.org/10.11583/DTU.24787341)) and satelitte data from table 3 [preprint] [DOI:10.5194/essd-2024-234](https://doi.org/10.5194/essd-2024-234) must be downloaded.
 
 To change the spatial and temporal resolutions from the default (30 days and 25km (northern hemisphere) and 50km (southern hemisphere)) one must adjust the parameters gridres = 25000  # grid resolution and
 dtint = 30  # days per mean, which are defined in the start of the processing scripts. For collocation the script collocate.py must be adjusted by defining the days and resolution parameters in the function collocation_part2.
+
+# Example use (run BGEP)
+1. Download relevant data
+2. Create environment using conda env create -f rrdp.yml
+4. Run python RRDPp/code/BGEP_processing_final.py (adjust dtint = 30 and gridres = 25000 if necessary) -> creates output file and figures in *../RRDPp/FINAL/BGEP/final* and *../RRDPp/FINAL/BGEP/fig* repectively
+6. Run ./RRDPp/satellitte/collocation.sh (adjust OBSID=('BEGP'), SATELLITE=('CS2' 'ENV') and HS=('NH')) and adjust days and resolution in collocation.py if necessary)
+7. Run python RRDPp/code/fix_outputfiles.py (Add info)
 
 # Credits
 This project was made Henriette Skourup and Ida Lundtorp Olsen. Data used in the project were gathered by several external organisations. 
@@ -42,6 +49,11 @@ When using code, or data from this project please include the citation:
 Olsen, I. L. and Skourup, H.: Sea ice thickness reference measurements (ESA CCI SIT RRDP), Dataset, https://doi.org/10.11583/DTU.24787341, 2024.
 
 and the acknowledgement:
-This datapackage and code was made by Ida Olsen and Henriette Skourup from the Technical University of Denmark
+This datapackage and code was made by Ida Lundtorp Olsen from the Danish Meteorological Institute and Henriette Skourup from the Technical University of Denmark
 
 You are also required to provide a citation to the raw data sources, when using this data. 
+
+# Contact
+Ida Lundtorp Olsen
+ilo@dmi.dk or ida.lundtorp@outlook.dk
+
