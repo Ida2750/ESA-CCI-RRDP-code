@@ -8,8 +8,8 @@ The Climate Change Initiative sea ice thickness Round Robin Data Package (CCI SI
 This repository provides the code used for processing from raw reference data to the final gridded product and the code used for co-locating reference data to satellite measurements from Envisat, CryoSat-2, ERS-1 and ERS-2. For examples of use, further information and inspiration we refer to the belonging paper [DOI:10.5194/essd-2024-234](https://doi.org/10.5194/essd-2024-234).
 
 # How to Install and Run the Project:
-The project was made using python version 3.13.3, along with the packages: numpy, matplotlib, cartopy, PyPDF2, netcdf4, pandas and more (see associated rrdp.yml file to copy the environment structure)
-To use the project download relevant reference data and Satellite data (see table 3 in DOI:10.5194/essd-2024-234) and see the How to Use the Project section for more information.
+The project was made using python version 3.13.3, along with the packages: numpy, matplotlib, cartopy, PyPDF2, netcdf4, pandas and more (see associated rrdp.yml file to copy the environment structure) \
+To use the project download relevant reference data and Satellite data (see table 3 in DOI:10.5194/essd-2024-234)
 
 # How to Use the Project:
 Currently the *../RRDPp/FINAL*, *../RRDPp/satellite/Final_files* and *../RRDPp/RawData* folders are left intentionally blank.
