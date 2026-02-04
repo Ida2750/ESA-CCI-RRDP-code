@@ -137,15 +137,31 @@ class Gridded:
         return i,j
 
 
+    def robust_std(self,data):
+        import numpy as np
+        median = np.nanmedian(data)
+        mad = np.nanmedian(np.abs(data - median))
+        return mad * 1.4826  # scaling factor for normal distribution
 
-    def GridData(self, tlim, vec_lat, vec_lon, t, SD=[], SD_unc=[], SIT=[], SIT_unc=[], FRB=[], FRB_unc=[], VAR1=[], VAR2=[]):
+
+    def GridData(self, tlim, vec_lat, vec_lon, t, SD=[], SD_unc=[], SIT=[], SIT_unc=[], FRB=[], FRB_unc=[], VAR1=[], VAR2=[], dtype='buoy'):
         #import pdb;
         import numpy as np
         import warnings
         import datetime as dt
         from datetime import timedelta
+        import matplotlib.pyplot as plt
         import numpy.ma as ma
         
+        plotcounter = 0
+        name = 'SCICEX'
+        fig, ax = plt.subplots(nrows=4, ncols=4, figsize=(12, 12), constrained_layout=True)
+        ax = ax.flatten()
+
+        # for spatial QF - find average frequency of measurements
+        # freq = np.mean(np.diff(t)).total_seconds()
+        # print(f'freq: {1/freq}')
+
         if len(SD) == 0:
             SD = np.array(vec_lat) * np.nan
 
@@ -172,7 +188,14 @@ class Gridded:
         if len(VAR2) == 0:
             VAR2 = np.array(vec_lat) * np.nan
 
+
+        # replace unc values with nan where data is nan
+        SD_unc[np.isnan(SD)] = np.nan
+        SIT_unc[np.isnan(SIT)] = np.nan
+        FRB_unc[np.isnan(FRB)] = np.nan
+
         vec_i, vec_j = self.LatLonToIdx(vec_lat, vec_lon)
+        #print(vec_i, vec_j)
 
         # Tranform geographic lat/lon to Lambert Azimuthal Equal Area
         xx,yy = self.EASE_proj(vec_lon,vec_lat)
@@ -229,6 +252,11 @@ class Gridded:
         # Additional variables e.g. surface temperature/air temperature
         outVAR1 = []
         outVAR2 = []
+
+        # QF (quality flags)
+        outQFT = []
+        outQFS = []
+        outQFG = []
         
         ## longitude
         for i in range(len(self.xc)):
@@ -280,21 +308,84 @@ class Gridded:
                             # supress warning - mean of empty numpy array
                             with warnings.catch_warnings():
                                 warnings.simplefilter("ignore", category=RuntimeWarning)
-                                avgSD = np.nanmean(sd)
-                                stdSD = np.std(sd[np.isnan(sd)==0])
+                                avgSD = np.nanmedian(sd)
+                                stdSD = self.robust_std(sd[np.isnan(sd)==0])
+                                #print(f'robust std: {stdSD}\n')
+                                #print(f' std: {np.std(sd[np.isnan(sd)==0])}\n')
                                 lnSD = len(sd[np.isnan(sd)==0])
-                                avgSIT = np.nanmean(sit)
-                                stdSIT = np.std(sit[np.isnan(sit)==0])
+                                avgSIT = np.nanmedian(sit)
+                                stdSIT = self.robust_std(sit[np.isnan(sit)==0])
                                 lnSIT = len(sit[np.isnan(sit)==0])
-                                stdFrb = np.std(Frb[np.isnan(Frb)==0])
+                                stdFrb = self.robust_std(Frb[np.isnan(Frb)==0])
                                 lnFrb = len(Frb[np.isnan(Frb)==0])
-                                avgFrb = np.nanmean(Frb)
-                                avgVAR1 = np.nanmean(var1)
-                                avgVar2 = np.nanmean(var2)
+                                avgFrb = np.nanmedian(Frb)
+                                avgVAR1 = np.nanmedian(var1)
+                                avgVar2 = np.nanmedian(var2)
                                 avgLat = np.mean(lat)
                                 avgLon = np.mean(lon)
                                 avgDT = np.mean(dt0)
-                                avgTime = t0+timedelta(seconds=avgDT)  
+                                avgTime = t0+timedelta(seconds=avgDT)
+
+                            # determine quality flags
+
+                            ################# TEMPORAL FLAG START ##################
+                            # compute time between first and last measuement
+                            # timediff = sorted(dt0)[-1] - sorted(dt0)[0]
+                            # compute number of days in gridcell
+                            tny = [(t0+timedelta(seconds=t)).day for t in dt0]
+                            # check number of unique days in gridcell
+                            unique = len(np.unique(tny))
+
+                            if unique==1:
+                                QF_flag_temporal = 3
+                            elif unique<=5:
+                                QF_flag_temporal = 2
+                            elif unique<15:
+                                QF_flag_temporal = 1
+                            elif unique>=15:
+                                QF_flag_temporal = 0
+
+                            ################# TEMPORAL FLAG END ##################
+                            ################# SPATIAL FLAG START ##################
+                            # footprint
+                            if dtype == 'AEM':
+                                footprint = 45 # meters source: https://epic.awi.de/id/eprint/50023/1/IceBird-2019-Winter-ICESat2DataAcquisitionReport.pdf
+                            elif dtype == 'OIB':
+                                footprint = 1 # meters source: https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2020RG000712
+                            # elif dtype == 'ship':
+                            #     footprint = 2000 # meters source: https://fiona.uni-hamburg.de/bdc0b40b/hutchings-ice-watch-manual-v4-1.pdf
+                            elif dtype == 'buoy' or dtype == 'ship':
+                                QF_flag_spatial = 3
+                                footprint = np.nan
+                            elif dtype == 'submarine': # diameter between 2.6 and 6 meters source: https://journals.ametsoc.org/view/journals/atot/24/11/jtech2097_1.pdf
+                                footprint = (6+2.6)/2
+
+
+                            if np.isfinite(footprint):
+                                # compute area - upper limit of area assuming no overlap between measurements which is not true!
+                                # area = pi* r²
+                                area = 3.14*(footprint/2)**2 *lnSIT
+
+                                if area/(self.resolution**2)*100 > 1: # what is a sufficiently high area covered?
+                                    QF_flag_spatial = 0
+                                    #print('good data')
+                                    #print(f'lnSIT {lnSIT}')
+                                else:
+                                    QF_flag_spatial = 1
+
+                            ################# SPATIAL FLAG END ##################
+                            ################# GBL THRESHOLD FLAG START ################
+                            QF_flag_threshold = 0 # default
+                            if np.any(sit>8):
+                                QF_flag_threshold = 1
+                            if np.any(sd>2) and dtype!='submarine':
+                                QF_flag_threshold = 1
+                            if np.any(sd>6) and dtype=='submarine': # sd is a placeholder for SID
+                                QF_flag_threshold = 1
+                            if np.any(Frb>3):
+                                QF_flag_threshold = 1
+                            ################# GBL THRESHOLD FLAG END ##################
+
                             # Calculation of uncertainty
                             if lnSD > 0:
                                 sigma_SD = 1/lnSD*np.sqrt(np.nansum(sd_unc**2))
@@ -328,6 +419,10 @@ class Gridded:
                             outUncSD = np.append(outUncSD,sigma_SD)
                             outUncSIT = np.append(outUncSIT,sigma_SIT)
                             outUncFrb = np.append(outUncFrb,sigma_Frb)
+                            # QF
+                            outQFT = np.append(outQFT,QF_flag_temporal)
+                            outQFS = np.append(outQFS,QF_flag_spatial)
+                            outQFG = np.append(outQFG,QF_flag_threshold)  
 
                             ## update time and append data
                             t0 = self.td_list[i][j][n]
@@ -363,21 +458,101 @@ class Gridded:
                                 # supress warning - mean of empty numpy array
                                 with warnings.catch_warnings():
                                     warnings.simplefilter("ignore", category=RuntimeWarning)
-                                    avgSD = np.nanmean(sd)
-                                    stdSD = np.std(sd[np.isnan(sd)==0])
+                                    avgSD = np.nanmedian(sd)
+                                    stdSD = self.robust_std(sd[np.isnan(sd)==0])
+                                    #print(f'robust std: {stdSD}\n')
+                                    #print(f' std: {np.std(sd[np.isnan(sd)==0])}\n')
                                     lnSD = len(sd[np.isnan(sd)==0])
-                                    avgSIT = np.nanmean(sit)
-                                    stdSIT = np.std(sit[np.isnan(sit)==0])
+                                    avgSIT = np.nanmedian(sit)
+                                    stdSIT = self.robust_std(sit[np.isnan(sit)==0])
                                     lnSIT = len(sit[np.isnan(sit)==0])
-                                    stdFrb = np.std(Frb[np.isnan(Frb)==0])
+                                    stdFrb = self.robust_std(Frb[np.isnan(Frb)==0])
                                     lnFrb = len(Frb[np.isnan(Frb)==0])
-                                    avgFrb = np.nanmean(Frb)
-                                    avgVAR1 = np.nanmean(var1)
-                                    avgVar2 = np.nanmean(var2)
+                                    avgFrb = np.nanmedian(Frb)
+                                    avgVAR1 = np.nanmedian(var1)
+                                    avgVar2 = np.nanmedian(var2)
                                     avgLat = np.mean(lat)
                                     avgLon = np.mean(lon)
                                     avgDT = np.mean(dt0)
-                                    avgTime = t0+timedelta(seconds=avgDT)                 
+                                    avgTime = t0+timedelta(seconds=avgDT) 
+
+                                    # ### plot distributions
+                                    # plotcounter += 1
+                                    # if any(np.isfinite(sd)):
+                                    #     plt.figure()
+                                    #     plt.hist(sd, bins=50)
+                                    #     plt.title(f'Median: {np.nanmedian(sd)}, Mean: {np.nanmean(sd)}')
+                                    #     plt.savefig(f'sd_test_{name}_{plotcounter}.png')   
+                                    #     plt.close()
+
+                                    # if any(np.isfinite(sit)):
+                                    #     plt.figure()
+                                    #     plt.hist(sit, bins=50)
+                                    #     plt.title(f'Median: {np.nanmedian(sit)}, Mean: {np.nanmean(sit)}')
+                                    #     plt.savefig(f'sit_test_{name}_{plotcounter}.png')   
+                                    #     plt.close()
+                                    ### ------------ ###
+
+
+
+                                # determine quality flags
+
+                                ################# TEMPORAL FLAG START ##################
+                                # compute time between first and last measuement
+                                # timediff = sorted(dt0)[-1] - sorted(dt0)[0]
+                                # compute number of days in gridcell
+                                tny = [(t0+timedelta(seconds=t)).day for t in dt0]
+                                # check number of unique days in gridcell
+                                unique = len(np.unique(tny))
+
+                                if unique==1:
+                                    QF_flag_temporal = 3
+                                elif unique<=5:
+                                    QF_flag_temporal = 2
+                                elif unique<15:
+                                    QF_flag_temporal = 1
+                                elif unique>=15:
+                                    QF_flag_temporal = 0
+
+                                ################# TEMPORAL FLAG END ##################
+                                ################# SPATIAL FLAG START ##################
+                                # footprint
+                                if dtype == 'AEM':
+                                    footprint = 45 # meters source: https://epic.awi.de/id/eprint/50023/1/IceBird-2019-Winter-ICESat2DataAcquisitionReport.pdf
+                                elif dtype == 'OIB':
+                                    footprint = 1 # meters source: https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2020RG000712
+                                # elif dtype == 'ship':
+                                #     footprint = 2000 # meters source: https://fiona.uni-hamburg.de/bdc0b40b/hutchings-ice-watch-manual-v4-1.pdf
+                                elif dtype == 'buoy' or dtype == 'ship':
+                                    QF_flag_spatial = 3
+                                    footprint = np.nan
+                                elif dtype == 'submarine': # diameter between 2.6 and 6 meters source: https://journals.ametsoc.org/view/journals/atot/24/11/jtech2097_1.pdf
+                                    footprint = (6+2.6)/2
+
+                                if np.isfinite(footprint):
+                                    # compute area - upper limit of area assuming no overlap between measurements which is not true!
+                                    # area = pi* r²
+                                    area = 3.14*(footprint/2)**2 *lnSIT
+
+                                    if area/(self.resolution**2)*100 > 1: # what is a sufficiently high area covered?
+                                        QF_flag_spatial = 0
+                                        #print('good data')
+                                        #print(f'lnSIT {lnSIT}')
+                                    else:
+                                        QF_flag_spatial = 1
+
+                                ################# SPATIAL FLAG END ##################
+                                ################# GBL THRESHOLD FLAG START ################
+                                QF_flag_threshold = 0 # default
+                                if np.any(sit>8):
+                                    QF_flag_threshold = 1
+                                if np.any(sd>2) and dtype!='submarine':
+                                    QF_flag_threshold = 1
+                                if np.any(sd>6) and dtype=='submarine': # sd is a placeholder for SID
+                                    QF_flag_threshold = 1
+                                if np.any(Frb>3):
+                                    QF_flag_threshold = 1
+                                ################# GBL THRESHOLD FLAG END ##################
 
                                 # Calculation of uncertainty
                                 if lnSD > 0:
@@ -410,26 +585,153 @@ class Gridded:
                                 # uncertainty
                                 outUncSD = np.append(outUncSD,sigma_SD)
                                 outUncSIT = np.append(outUncSIT,sigma_SIT)
-                                outUncFrb = np.append(outUncFrb,sigma_Frb)                                              
+                                outUncFrb = np.append(outUncFrb,sigma_Frb) 
+                                # QF
+                                outQFT = np.append(outQFT,QF_flag_temporal)
+                                outQFS = np.append(outQFS,QF_flag_spatial)
+                                outQFG = np.append(outQFG,QF_flag_threshold)  
+
                     if flag == 0:
                         # supress warning - mean of empty numpy array
                         with warnings.catch_warnings():
                             warnings.simplefilter("ignore", category=RuntimeWarning)
-                            avgSD = np.nanmean(sd)
-                            stdSD = np.std(sd[np.isnan(sd)==0])
+                            avgSD = np.nanmedian(sd)
+                            stdSD = self.robust_std(sd[np.isnan(sd)==0])
+                            #print(f'robust std: {stdSD}\n')
+                            #print(f' std: {np.std(sd[np.isnan(sd)==0])}\n')
                             lnSD = len(sd[np.isnan(sd)==0])
-                            avgSIT = np.nanmean(sit)
-                            stdSIT = np.std(sit[np.isnan(sit)==0])
+                            avgSIT = np.nanmedian(sit)
+                            stdSIT = self.robust_std(sit[np.isnan(sit)==0])
                             lnSIT = len(sit[np.isnan(sit)==0])
-                            stdFrb = np.std(Frb[np.isnan(Frb)==0])
+                            stdFrb = self.robust_std(Frb[np.isnan(Frb)==0])
                             lnFrb = len(Frb[np.isnan(Frb)==0])
-                            avgFrb = np.nanmean(Frb)
-                            avgVAR1 = np.nanmean(var1)
-                            avgVar2 = np.nanmean(var2)
+                            avgFrb = np.nanmedian(Frb)
+                            avgVAR1 = np.nanmedian(var1)
+                            avgVar2 = np.nanmedian(var2)
                             avgLat = np.mean(lat)
                             avgLon = np.mean(lon)
                             avgDT = np.mean(dt0)
-                            avgTime = t0+timedelta(seconds=avgDT)             
+                            avgTime = t0+timedelta(seconds=avgDT)    
+
+
+                            ### plot distributions
+                            if any(np.isfinite(sit)):
+                                if plotcounter<16:
+                                    median_val = np.nanmedian(sit)
+                                    mean_val   = np.nanmean(sit)
+                                    ax[plotcounter].hist(sit, bins=50, label=f'Median: {median_val:.2f}, Mean: {mean_val:.2f}')
+                                    ax[plotcounter].set_xlabel('SIT [m]')
+                                    ax[plotcounter].set_ylabel('count')
+                                    ax[plotcounter].legend()
+                                
+                                if plotcounter == 16:
+                                    fig.suptitle(f'{name}: Example of gricell distribution of data')
+                                    plt.savefig(f'sit_test_{name}.png')   
+                                    plt.close()
+
+                                plotcounter += 1
+
+
+                            ### plot distributions
+                            if any(np.isfinite(sd)):
+                                if plotcounter<16:
+                                    median_val = np.nanmedian(sd)
+                                    mean_val   = np.nanmean(sd)
+                                    ax[plotcounter].hist(sd, bins=50, label=f'Median: {median_val:.2f}, Mean: {mean_val:.2f}')
+                                    ax[plotcounter].set_xlabel('SID [m]')
+                                    ax[plotcounter].set_ylabel('count')
+                                    ax[plotcounter].legend()
+                                
+                                if plotcounter == 16:
+                                    fig.suptitle(f'{name}: Example of gricell distribution of data')
+                                    plt.savefig(f'sid_test_{name}.png')   
+                                    plt.close()
+
+                                plotcounter += 1
+
+
+                            # if any(np.isfinite(sd)):
+                            #     plt.figure()
+                            #     plt.hist(sd, bins=50)
+                            #     plt.title(f'Median: {np.nanmedian(sd)}, Mean: {np.nanmean(sd)}')
+                            #     plt.savefig(f'sd_test_{name}_{plotcounter}.png')   
+                            #     plt.close()
+
+                            # if any(np.isfinite(sit)):
+                            #     plt.figure()
+                            #     plt.hist(sit, bins=50)
+                            #     plt.title(f'Median: {np.nanmedian(sit)}, Mean: {np.nanmean(sit)}')
+                            #     plt.savefig(f'sit_test_{name}_{plotcounter}.png')   
+                            #     plt.close()
+                            ### ------------ ###
+
+                        # determine quality flags
+                        ################# TEMPORAL FLAG START ##################
+                        # compute time between first and last measuement
+                        # timediff = sorted(dt0)[-1] - sorted(dt0)[0]
+                        # compute number of days in gridcell
+                        tny = [(t0+timedelta(seconds=t)).day for t in dt0]
+                        # check number of unique days in gridcell
+                        unique = len(np.unique(tny))
+
+                        if unique==1:
+                            QF_flag_temporal = 3
+                        elif unique<=5:
+                            QF_flag_temporal = 2
+                        elif unique<15:
+                            QF_flag_temporal = 1
+                        elif unique>=15:
+                            QF_flag_temporal = 0
+
+                        ################# TEMPORAL FLAG END ##################
+                        ################# SPATIAL FLAG START ##################
+                        # footprint
+                        if dtype == 'AEM':
+                            footprint = 45 # meters source: https://epic.awi.de/id/eprint/50023/1/IceBird-2019-Winter-ICESat2DataAcquisitionReport.pdf
+                        elif dtype == 'OIB':
+                            footprint = 1 # meters source: https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2020RG000712
+                        # elif dtype == 'ship':
+                        #     footprint = 2000 # meters source: https://fiona.uni-hamburg.de/bdc0b40b/hutchings-ice-watch-manual-v4-1.pdf
+                        elif dtype == 'buoy' or dtype == 'ship':
+                            QF_flag_spatial = 3
+                            footprint = np.nan
+                        elif dtype == 'submarine': # diameter between 2.6 and 6 meters source: https://journals.ametsoc.org/view/journals/atot/24/11/jtech2097_1.pdf
+                            footprint = (6+2.6)/2
+
+                        if np.isfinite(footprint):
+                            # compute area - upper limit of area assuming no overlap between measurements which is not true!
+                            # area = pi* r²
+                            area = 3.14*(footprint/2)**2 *lnSIT
+
+                            if area/(self.resolution**2)*100 > 1: # what is a sufficiently high area covered?
+                                QF_flag_spatial = 0
+                                #print('good data')
+                                #print(f'lnSIT {lnSIT}')
+                            else:
+                                QF_flag_spatial = 1
+
+                        ################# SPATIAL FLAG END ##################
+                        ################# GBL THRESHOLD FLAG START ################
+                        QF_flag_threshold = 0 # default
+                        if np.any(sit>8):
+                            QF_flag_threshold = 1
+                        if np.any(sd>2) and dtype!='submarine':
+                            QF_flag_threshold = 1
+                        if np.any(sd>6) and dtype=='submarine': # sd is a placeholder for SID
+                            QF_flag_threshold = 1
+                        if np.any(Frb>3):
+                            QF_flag_threshold = 1
+                        ################# GBL THRESHOLD FLAG END ##################
+
+                        # if freq > 1/(5*60) and (lnSD>1440 or lnSIT>1440 or lnFrb>1440): # more than once every 5 minutes
+                        #     QF_flag_spatial = 0
+                        # elif (freq > 1/(0.5*3600) and freq < 1/(5*60)) and (lnSD>240 | lnSIT>240 | lnFrb>240):
+                        #     QF_flag_spatial = 0
+                        # elif freq < 1/(0.5*3600) and (lnSD>30 | lnSIT>30 | lnFrb>30): # once every 0.5 hour
+                        #     QF_flag_spatial = 0
+                        # else:
+                        #     QF_flag_spatial = 1
+                        # print(QF_flag_spatial)
 
                         # Calculation of uncertainty
                         if lnSD > 0:
@@ -463,11 +765,15 @@ class Gridded:
                         outUncSD = np.append(outUncSD,sigma_SD)
                         outUncSIT = np.append(outUncSIT,sigma_SIT)
                         outUncFrb = np.append(outUncFrb,sigma_Frb)
+                        # QF
+                        outQFT = np.append(outQFT,QF_flag_temporal)
+                        outQFS = np.append(outQFS,QF_flag_spatial)
+                        outQFG = np.append(outQFG,QF_flag_threshold)
                           
        
         outlon,outlat = self.EASE_proj(outxx,outyy,inverse=True)
 
-        return outavgsd, outstdsd, outlnsd, outUncSD, outlat, outlon, outtime, outSIT, outstdSIT, outlnSIT, outUncSIT, outFrb, outstdFrb, outlnFrb, outUncFrb, outVAR1, outVAR2
+        return outavgsd, outstdsd, outlnsd, outUncSD, outlat, outlon, outtime, outSIT, outstdSIT, outlnSIT, outUncSIT, outFrb, outstdFrb, outlnFrb, outUncFrb, outVAR1, outVAR2, outQFT, outQFS, outQFG
 
          
 

@@ -76,7 +76,7 @@ def write_info_table(obsID, timespan, quality):
 
     return None
 
-def Bias_correction(SID):
+def Bias_correction(SID, name):
     """
     Parameters
     ----------
@@ -88,42 +88,85 @@ def Bias_correction(SID):
     SID : Numpy Array
         SID data array after correction for Bias
 
+    source: https://essd.copernicus.org/articles/5/209/2013/essd-5-209-2013.pdf - table 4
+
     """
+
+    depths = { 'AWI206-4':120,
+               'AWI207-2':140,
+               'AWI207-4':180,
+               'AWI207-6':135,
+               'AWI208-3':115,
+               'AWI209-3':90,
+               'AWI210-2':130,
+               'AWI212-2':130,
+               'AWI217-1':115,
+               'AWI227-3':144,
+               'AWI227-4':135,
+               'AWI227-6':140,
+               'AWI229-1':160,
+               'AWI229-2':150,
+               'AWI229-3':120,
+               'AWI229-4':130,
+               'AWI229-5':120,
+               'AWI229-6':150,
+               'AWI230-2':150,
+               'AWI230-3':190,
+               'AWI231-1':165,
+               'AWI231-2':180,
+               'AWI231-3':100,
+               'AWI231-4':185,
+               'AWI231-6':145,
+               'AWI231-7':125,
+               'AWI232-1':100,
+               'AWI232-4':160,
+               'AWI232-5':160,
+               'AWI232-6':160,
+               'AWI232-8':140,
+               'AWI233-2':110,
+               'AWI233-6':180,
+               }
+    depth = depths[name]
     for i in range(len(SID)):
-        if SID[i]>0.42:
-            if SID[i] <= 1.05:
+        if SID>=0.42: # only bias correct for SID of a certain thickness
+            if depth <= 105:
                 SID[i] = SID[i]-0.42
-            elif SID[i] <= 1.15:
+            elif depth <= 115:
                 SID[i] = SID[i] -0.45
-            elif SID[i] <= 1.25:
+            elif depth <= 125:
                 SID[i] = SID[i] -0.48
-            elif SID[i] <= 1.35:
+            elif depth <= 135:
                 SID[i] = SID[i] -0.52
-            elif SID[i] <= 1.45:
+            elif depth <= 145:
                 SID[i] = SID[i] -0.55
-            elif SID[i] <= 1.55:
+            elif depth <= 155:
                 SID[i] = SID[i] -0.58
-            elif SID[i] <= 1.65:
+            elif depth <= 165:
                 SID[i] = SID[i] -0.62
-            elif SID[i] <= 1.75:
+            elif depth <= 175:
                 SID[i] = SID[i] -0.65
-            elif SID[i] > 1.75:
+            elif depth > 175:
                 SID[i] = SID[i] -0.68
-        elif SID[i]<0:
+        if SID[i]<0:
             SID[i] = np.nan
     return SID
 
+def robust_std(data):
+    median = np.nanmedian(data)
+    mad = np.nanmedian(np.abs(data - median))
+    return mad * 1.4826  # scaling factor for normal distribution
 #%% Main
 
 #define output variables
 Bias=False
 # raw dat directory
-directory = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd())))) + '/RRDPp/RawData/Antarctic/AWI_ULS/Behrendt_2013/datasets/'
+#directory = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd())))) + '/RRDPp/RawData/Antarctic/AWI_ULS/Behrendt_2013/datasets/'
+directory = '/dmidata/projects/cmems2/C3S/RRDPp/RawData/Antarctic/AWI_ULS/Behrendt_2013/datasets'
 # saving path for output files and figures
-savepath = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), 'Final/Antarctic/AWI_ULS/final/')
-saveplot = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), 'Final/Antarctic/AWI_ULS/fig/')
+savepath = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), 'FINAL/Antarctic/AWI_ULS/final/')
+saveplot = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), 'FINAL/Antarctic/AWI_ULS/fig/')
 # name of output file
-ofile = 'ESACCIplus-SEAICE-RRDP2+-SID-AWI-ULS_Bias_'+str(Bias)+'.nc'
+ofile = 'ESACCIplus-SEAICE-RRDP2+-SID-AWI-ULS_Bias_'+str(Bias)+'-robusttest.nc'
 ofile =  os.path.join(savepath, ofile)
 if not os.path.exists(savepath):os.makedirs(savepath)
 if not os.path.exists(saveplot):os.makedirs(saveplot)
@@ -215,7 +258,7 @@ for ifile in os.listdir(directory):
             # define uncertainty
             SID_Unc = np.zeros(SID.shape)
             for i, dat in zip(range(len(dates)), dates):
-                if dat.month > 5 and dat.month < 9:
+                if dat.month < 6 or dat.month > 10:
                     SID_Unc[i] = 0.05
                 else:
                     SID_Unc[i] = 0.12
@@ -224,12 +267,13 @@ for ifile in os.listdir(directory):
             # define uncertainty
             SID_Unc = np.array([0.23 for S in SID])
             
-            
-        ## Bias correction based on table4 A. Behrendt el. al 2013
-        if Bias==True:
-            SID = Bias_correction(SID)
-        
-        
+
+        # ## Bias correction based on table4 A. Behrendt el. al 2013
+        # if Bias==True:
+        #     SID = Bias_correction(SID)
+
+        SID[SID<0] = np.nan
+        SID[SID>8] = np.nan
 
         # Find indexes of new months
         mondiff=np.where(~(np.diff(months) == 0))[0] #index of when month changes
@@ -237,8 +281,11 @@ for ifile in os.listdir(directory):
         
         # Get average value of variables for each month        
         # loop over variables, but assure that the length takes only the non nan value elements
-        dataOut.SID_final=np.array([np.nanmean(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
-        dataOut.SID_std=np.array([np.nanstd(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+        dataOut.SID_final=np.array([np.nanmedian(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+        dataOut.SID_final[np.round(dataOut.SID_final,2)==0]=np.nan
+        #dataOut.SID_std=np.array([np.nanstd(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+        dataOut.SID_std = np.array([robust_std(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+
         dataOut.SID_ln=np.array([len(SID[index[i]:index[i+1]][~np.isnan(SID[index[i]:index[i+1]])]) for i in range(len(index)-1)])
         dataOut.unc_flag = np.array([unc_flag[index[i]] for i in range(len(index)-1)])
         
@@ -248,6 +295,37 @@ for ifile in os.listdir(directory):
             start = index[i]
             end = index[i+1]
             dataOut.SID_unc[i] = 1/dataOut.SID_ln[i] * np.sqrt(np.nansum(SID_Unc[start:end]**2))
+
+        ######### QUALITY FLAGS ############
+        dataOut.QFT = [] # temporal
+        dataOut.QFS = [] # spatial
+        dataOut.QFG = [] # global threshold
+
+        days = [time.day for time in dates]
+        for i in range(len(index)-1):
+            # find number of days
+            unique = len(np.unique(days[index[i]:index[i+1]]))
+            if np.any(SID[index[i]:index[i+1]]>6):
+                dataOut.QFG.append(1)
+            else:
+                dataOut.QFG.append(0)
+            if unique==1:
+                dataOut.QFT.append(3)
+                dataOut.QFS.append(3)
+            elif unique<=5:
+                dataOut.QFT.append(2)
+                dataOut.QFS.append(3)
+            elif unique<15:
+                dataOut.QFT.append(1)
+                dataOut.QFS.append(3)
+            elif unique>=15:
+                dataOut.QFT.append(0)
+                dataOut.QFS.append(0)
+        
+        dataOut.QFT = np.array(dataOut.QFT)
+        dataOut.QFS = np.array(dataOut.QFS)
+        dataOut.QFG = np.array(dataOut.QFG)
+        ######### QUALITY FLAGS ############
         
         # Get median data of each month
         avgDates=np.array([np.median(t2[index[i]:index[i+1]]) for i in range(len(index)-1)])

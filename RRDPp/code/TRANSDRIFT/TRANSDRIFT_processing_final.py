@@ -27,6 +27,11 @@ import Functions
 import EASEgrid_correct as EASEgrid
 from Warren import SnowDepth, SWE
 
+def robust_std(data):
+    median = np.nanmedian(data)
+    mad = np.nanmedian(np.abs(data - median))
+    return mad * 1.4826  # scaling factor for normal distribution
+
 # %% Main
 dtint = 30
 gridres = 25000
@@ -37,8 +42,12 @@ saveplot = os.path.dirname(os.path.dirname(
     os.getcwd())) + '/FINAL/TRANSDRIFT/fig/'
 ofile = os.path.dirname(os.path.dirname(os.getcwd(
 ))) + '/FINAL/TRANSDRIFT/final/ESACCIplus-SEAICE-RRDP2+-SID-TRANSDRIFT.nc'
-directory = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.getcwd())))) + '/RRDPp/RawData/TRANSDRIFT/datasets'
+
+# directory = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
+#     os.getcwd())))) + '/RRDPp/RawData/TRANSDRIFT/datasets'
+
+directory = '/dmidata/projects/cmems2/C3S/RRDPp/RawData/TRANSDRIFT/datasets'
+
 if not os.path.exists(save_path_data):os.makedirs(save_path_data)
 if not os.path.exists(saveplot):os.makedirs(saveplot)
 
@@ -82,6 +91,9 @@ for filename in os.listdir(directory):
             latitude = data['lat']  # degrees
             longitude = data['lon']  # degrees
             SID = data['SID']  # meters
+            
+            SID[SID<0] = np.nan
+            SID[SID>6] = np.nan
     
             # uncertainty of 10 cm approx.
             if filename.startswith('ULS_1893') or filename.startswith('ULS_Taymyr'):
@@ -106,10 +118,15 @@ for filename in os.listdir(directory):
                 index = np.insert(np.append(mondiff, len(months)-1), 0, 0)
             
             # compute monthly SID values
-            dataOut.SID_final = np.array(
-                [np.nanmean(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
-            dataOut.SID_std = np.array(
-                [np.nanstd(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+            # dataOut.SID_final = np.array(
+            #     [np.nanmean(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+            # dataOut.SID_std = np.array(
+            #     [np.nanstd(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+
+            dataOut.SID_final=np.array([np.nanmedian(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+            #dataOut.SID_std=np.array([np.nanstd(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+            dataOut.SID_std = np.array([robust_std(SID[index[i]:index[i+1]]) for i in range(len(index)-1)])
+
             dataOut.SID_ln = np.array([len(SID[index[i]:index[i+1]])
                                       for i in range(len(index)-1)])
             # compute uncertainty
@@ -118,7 +135,38 @@ for filename in os.listdir(directory):
                 end = index[i+1]
                 dataOut.SID_unc = np.append(
                     dataOut.SID_unc, 1/dataOut.SID_ln[i] * np.sqrt(np.nansum(SID_Unc[start:end]**2)))
-    
+                
+            ######### QUALITY FLAGS ############
+            dataOut.QFT = [] # temporal
+            dataOut.QFS = [] # spatial
+            dataOut.QFG = [] # global threshold
+
+            days = [time.day for time in t]
+            for i in range(len(index)-1):
+                # find number of days
+                unique = len(np.unique(days[index[i]:index[i+1]]))
+                if np.any(SID[index[i]:index[i+1]]>8):
+                    dataOut.QFG.append(1)
+                else:
+                    dataOut.QFG.append(0)
+                if unique==1:
+                    dataOut.QFT.append(3)
+                    dataOut.QFS.append(3)
+                elif unique<=5:
+                    dataOut.QFT.append(2)
+                    dataOut.QFS.append(3)
+                elif unique<15:
+                    dataOut.QFT.append(1)
+                    dataOut.QFS.append(3)
+                elif unique>=15:
+                    dataOut.QFT.append(0)
+                    dataOut.QFS.append(0)
+            
+            dataOut.QFT = np.array(dataOut.QFT)
+            dataOut.QFS = np.array(dataOut.QFS)
+            dataOut.QFG = np.array(dataOut.QFG)
+            ######### QUALITY FLAGS ############
+            
             #find median date within month (tells about which part of the month majority measurements are from)
             avgDates = np.array([np.median(t2[index[i]:index[i+1]])
                                 for i in range(len(index)-1)])

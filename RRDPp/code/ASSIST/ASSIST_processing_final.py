@@ -9,9 +9,9 @@ Uses EASE-grid to produce 25 km grid mean values.
 # -- File info -- #
 __author__ = 'Ida Olsen'
 __contributors__ = 'Henriette Skorup'
-__contact__ = ['s174020@student.dtu.dk']
+__contact__ = ['ilo@dmi.dk']
 __version__ = '0'
-__date__ = '2020-07-13'
+__date__ = '2025-05-01'
 
 # -- Built-in modules -- #
 import os.path
@@ -32,8 +32,8 @@ import Functions
 #%% Functions
 
 def compute_SD_SIT(conc_tot, cc_P, SIT_P, SD_P, cc_S, SIT_S, SD_S, cc_T,SIT_T, SD_T):
-    SD = [];
-    SIT = [];
+    SD = []
+    SIT = []
     for kk in range(len(conc_tot)):
         # print(kk)
         if conc_tot[kk]>0 and ~np.isnan(conc_tot[kk]):    
@@ -70,6 +70,9 @@ def compute_SD_SIT(conc_tot, cc_P, SIT_P, SD_P, cc_S, SIT_S, SD_S, cc_T,SIT_T, S
         else:
             SIT = np.append(SIT,np.nan)
             SD = np.append(SD,np.nan)
+    # remove unrealistic SD and SIT values
+    SD[SD>200] = np.nan
+    SIT[SIT>800] = np.nan
     return SD,SIT
 
 def Get_unc(SD, SIT):
@@ -98,24 +101,33 @@ def Get_unc(SD, SIT):
 
 parrent = os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd())))
 # Reads input data
-directory = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd())))) + '/RRDPp/RawData/ASSIST'
+directory = os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd()))) + '/RRDPp/RawData/ASSIST'
 # saving location
 save_path_data=parrent + '/RRDPp/FINAL/ASSIST/final/'
 saveplot = parrent + '/RRDPp/FINAL/ASSIST/fig/'
 ofile ='ESACCIplus-SEAICE-RRDP2+-SIT-ASSIST.nc'
 ofile = os.path.join(save_path_data,ofile)
 
+# create directories if they do not exist
+if not os.path.exists(save_path_data): os.makedirs(save_path_data)
+if not os.path.exists(saveplot): os.makedirs(saveplot)
+
 gridres = 25000  # grid resolution
 dtint = 30; # days per mean
 
 # Access data
-directories = os.listdir(directory)
+directories = sorted(os.listdir(directory))
+directories = [d for d in directories if d.startswith('2')]
 # sort to ensure starting with the earliest date
-numbers = [re.findall(r'[0-9]+', directory) for directory in directories]
-index = np.argsort(numbers)
-directories = [directories[ind] for ind in index]
+# numbers = [re.findall(r'[0-9]+', directory) for directory in directories]
+# print(numbers)
+# index = np.argsort(numbers)
+# directories = [directories[ind] for ind in index]
 
 # count for header
+total_obs = 0
+total_obs_valid = 0
+total_obs_out = 0
 count = 0
 for dir in directories:
     dir_data = os.path.join(directory, dir)                
@@ -134,7 +146,9 @@ for dir in directories:
                 # Reads observation data from ASCII-file
                 dtype = [object if i<2 else float for i in range(70)]
                 data = np.genfromtxt(file,skip_header=0,names=True, dtype=dtype,delimiter=',',usecols=np.arange(0,70), encoding=None)
-                
+                # sort according to time
+                data = np.sort(data, order='Date')
+
                 # Load data
                 date = data['Date']
                 # faulty date measurement
@@ -186,7 +200,11 @@ for dir in directories:
                 # Change measurements from cm to m
                 SIT = SIT/100
                 SD = SD/100
-                
+                total_obs += len(SIT)
+                total_obs_valid += len(SIT[np.isfinite(SIT)])
+                #print(len(SIT[np.isfinite(SIT)]))
+                #print(total_obs)
+                #print(total_obs_valid)
                 # Convert date format into datetime format
                 t = np.array([dt.datetime.strptime(s.decode('utf8'), "%Y-%m-%d %H:%M:%S UTC")
                                  for s in date])
@@ -204,10 +222,15 @@ for dir in directories:
                 # SIT_unc[np.isnan(SIT)] = np.nan
                 
                 SD_unc, SIT_unc = Functions.Get_unc(SD, SIT)
+                # convert to numpy arrays
+                SD_unc = np.array(SD_unc)
+                SIT_unc = np.array(SIT_unc)
                 # Takes the time for each grid cell into account and calculate averages
                 (avgSD, stdSD, lnSD, uncSD, lat, lon, time, avgSIT, stdSIT, lnSIT, uncSIT, avgFRB, stdFRB,
-                 lnFRB, FRB_Unc,var1, var2) = G.GridData(dtint, latitude, longitude, t, SD, SD_unc, SIT, SIT_unc, FRB=[], FRB_unc=[])
-                
+                 lnFRB, FRB_Unc,var1, var2, dataOut.QFT, dataOut.QFS, dataOut.QFG) = G.GridData(dtint, latitude, longitude, t, SD, SD_unc, SIT, SIT_unc, FRB=[], FRB_unc=[], dtype='ship')
+
+                total_obs_out += len(avgSIT[np.isfinite(avgSIT)])
+                #print(total_obs_out)
                 if len(time)>0:
                     Functions.plot(lat, lon, dataOut.obsID, time,saveplot)
                     Functions.scatter(dataOut.obsID, t, SD, time, avgSD, 'SD [m]', saveplot)
@@ -245,13 +268,18 @@ for dir in directories:
                 dataOut.obsID = [dataOut.obsID]*len(dataOut.SIT_final)
                 dataOut.w_SD_final = dataOut.w_SD_final[index]
                 dataOut.w_density_final = dataOut.w_density_final[index]
-                
+                dataOut.QFT = dataOut.QFT[index]
+                dataOut.QFS = dataOut.QFS[index]
+                dataOut.QFG = dataOut.QFG[index]
                 # fill empty arrays with NaN values
                 dataOut.Check_Output()
                     
                 if count>1:
                     subset = dataOut.Create_NC_file(ofile, primary='SIT')
-                    df = Functions.Append_to_NC(df, subset)
+                    try:
+                        df = Functions.Append_to_NC(df, subset)
+                    except:
+                        print(subset)
                 else:
                     df = dataOut.Create_NC_file(ofile, primary='SIT', datasource='ASSIST: https://icewatch.met.no/', key_variables='Sea Ice thickness and snow depth')
 
