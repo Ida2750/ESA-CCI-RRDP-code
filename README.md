@@ -26,11 +26,25 @@ The *../RRDPp/satellite* folder contains scripts that are related to co-locating
 
 To do the co-location reference data from the CCI SIT RRDP ([DOI:10.11583/DTU.23735679](https://doi.org/10.11583/DTU.24787341)) and satelitte data from table 3 [preprint] [DOI:10.5194/essd-2024-234](https://doi.org/10.5194/essd-2024-234) must be downloaded.
 
-To change the spatial and temporal resolutions from the default values (30 days and 25 km in the Northern Hemisphere, 50 km in the Southern Hemisphere), the parameters defined at the beginning of the processing scripts must be modified.
-Specifically:
-gridres = 25000 controls the spatial grid resolution (in meters), and
-dtint = 30 defines the temporal resolution in days.
-For the collocation step, the script collocate.py must also be updated by defining the days and resolution parameters in the function collocation_part2.
+
+## Changing Spatial and Temporal Resolution
+The default configuration uses:
+- **Temporal resolution:** 30 days  
+- **Spatial resolution:**  
+  - 25 km in the Northern Hemisphere  
+  - 50 km in the Southern Hemisphere  
+
+To change these settings, modify the parameters defined at the beginning of the processing scripts:
+
+```python
+gridres = 25000  # spatial grid resolution (in meters)
+dtint = 30       # temporal resolution (days per mean)
+```
+
+Collocation Step
+
+If you are performing collocation, the script collocate.py must also be updated.
+Set the desired temporal and spatial resolution parameters inside the collocation_part2 function. 
 
 # Example use (run BGEP)
 1. Download relevant data
