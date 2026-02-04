@@ -34,7 +34,7 @@ dtint = 30  # days per mean, which are defined in the start of the processing sc
 2. Create environment using conda env create -f rrdp.yml
 4. Run python RRDPp/code/BGEP_processing_final.py (adjust dtint = 30 and gridres = 25000 if necessary) -> creates output file and figures in *../RRDPp/FINAL/BGEP/final* and *../RRDPp/FINAL/BGEP/fig* repectively
 6. Run ./RRDPp/satellitte/collocation.sh (adjust OBSID=('BEGP'), SATELLITE=('CS2' 'ENV') and HS=('NH')) and adjust days and resolution in collocation.py if necessary)
-7. Run python RRDPp/code/fix_outputfiles.py (Add info)
+7. Run python RRDPp/code/fix_outputfiles.py
 
 # Credits
 This project was made Henriette Skourup and Ida Lundtorp Olsen. Data used in the project were gathered by several external organisations. 
