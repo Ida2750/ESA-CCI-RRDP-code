@@ -22,7 +22,7 @@ A folder with the naming convention of the *../RRDPp/code* folder should be made
 In the ../RRDPp/RawData folder the user should locate raw data in folders following the naming convention of the *../RRDPp/code* folder.
 Individual links to raw data are available from the belonging publication in table 3 [preprint] [DOI:10.5194/essd-2024-234](https://doi.org/10.5194/essd-2024-234)
 
-The *../RRDPp/satellite* folder contains scconda env create -f environment.ymlripts that are related to co-locating data from CryoSat-2, ENVISAT, ERS-1 and ERS-2 to data in the *../RRDPp/FINAL* folder.
+The *../RRDPp/satellite* folder contains scripts that are related to co-locating data from CryoSat-2, ENVISAT, ERS-1 and ERS-2 to data in the *../RRDPp/FINAL* folder.
 
 To do the co-location reference data from the CCI SIT RRDP ([DOI:10.11583/DTU.23735679](https://doi.org/10.11583/DTU.24787341)) and satelitte data from table 3 [preprint] [DOI:10.5194/essd-2024-234](https://doi.org/10.5194/essd-2024-234) must be downloaded.
 
