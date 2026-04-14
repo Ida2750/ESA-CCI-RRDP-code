@@ -3,13 +3,13 @@ Code for sea ice thickness reference measurements
 
 
 # Project Description:
-The Climate Change Initiative sea ice thickness Round Robin Data Package (CCI SIT RRDP) is a set of space delimitted ASCII files which contain a range of relevant reference sea ice variables, including sea ice thickness, snow depth, draft and freeboard, along with snow depth and density from Warren climatology (1999) for Arctic. Sea ice surface temperature and air temperature is also provided when available. The data has been gridded into a 25 by 25 km product for Arctic and 50 by 50 km for Antarctic using EASE-grid 2.0 and contains monthly averages of the given gridpoint. Reference data from autonomous buoys, moorings, submarines, ships (ice breakers), airborne campaigns (radar/laser altimetry and electromagnetic induction system) and in-situ measurements is provided in the final dataset. This dataset is available from DTU DATA ([DOI:10.11583/DTU.23735679](https://doi.org/10.11583/DTU.24787341)) and described in the publication [preprint] [DOI:10.5194/essd-2024-234](https://doi.org/10.5194/essd-2024-234).
+The Climate Change Initiative sea ice thickness Round Robin Data Package (CCI SIT RRDP) is a set of space delimitted ASCII files which contain a range of relevant reference sea ice variables, including sea ice thickness, snow depth, draft and freeboard, along with snow depth and density from Warren climatology (1999) for Arctic. Sea ice surface temperature and air temperature is also provided when available. The data has been gridded into a 25 by 25 km product for Arctic and 50 by 50 km for Antarctic using EASE-grid 2.0 and contains monthly averages of the given gridpoint. Reference data from autonomous buoys, moorings, submarines, ships (ice breakers), airborne campaigns (radar/laser altimetry and electromagnetic induction system) and in-situ measurements is provided in the final dataset. This dataset is available from DTU DATA ([DOI:10.11583/DTU.23735679](https://doi.org/10.11583/DTU.24787341)) and described in the publication [DOI:10.5194/essd-18-2469-2026](https://doi.org/10.5194/essd-18-2469-2026).
 
-This repository provides the code used for processing from raw reference data to the final gridded product and the code used for co-locating reference data to satellite measurements from Envisat, CryoSat-2, ERS-1 and ERS-2. For examples of use, further information and inspiration we refer to the belonging paper [DOI:10.5194/essd-2024-234](https://doi.org/10.5194/essd-2024-234).
+This repository provides the code used for processing from raw reference data to the final gridded product and the code used for co-locating reference data to satellite measurements from Envisat, CryoSat-2, ERS-1 and ERS-2. For examples of use, further information and inspiration we refer to the belonging paper [DOI:10.5194/essd-18-2469-2026](https://doi.org/10.5194/essd-18-2469-2026).
 
 # How to Install and Run the Project:
 The project was made using python version 3.13.3, along with the packages: numpy, matplotlib, cartopy, PyPDF2, netcdf4, pandas and more (see associated rrdp.yml file to copy the environment structure) \
-To use the project download relevant reference data and Satellite data (see table 3 in [preprint] [DOI:10.5194/essd-2024-234](https://doi.org/10.5194/essd-2024-234))
+To use the project download relevant reference data and Satellite data (see table 3 in [preprint] [DOI:10.5194/essd-18-2469-2026](https://doi.org/10.5194/essd-18-2469-2026))
 
 # How to Use the Project:
 Currently the *../RRDPp/FINAL*, *../RRDPp/satellite/Final_files* and *../RRDPp/RawData* folders are left intentionally blank.
@@ -20,11 +20,11 @@ The *../RRDPp/code* folder contains the scripts for the individual campaigns whi
 A folder with the naming convention of the *../RRDPp/code* folder should be made in the *../RRDPp/FINAL* folder.
 
 In the ../RRDPp/RawData folder the user should locate raw data in folders following the naming convention of the *../RRDPp/code* folder.
-Individual links to raw data are available from the belonging publication in table 3 [preprint] [DOI:10.5194/essd-2024-234](https://doi.org/10.5194/essd-2024-234)
+Individual links to raw data are available from the belonging publication in table 3 [preprint] [DOI:10.5194/essd-18-2469-2026](https://doi.org/10.5194/essd-18-2469-2026)
 
 The *../RRDPp/satellite* folder contains scripts that are related to co-locating data from CryoSat-2, ENVISAT, ERS-1 and ERS-2 to data in the *../RRDPp/FINAL* folder.
 
-To do the co-location reference data from the CCI SIT RRDP ([DOI:10.11583/DTU.23735679](https://doi.org/10.11583/DTU.24787341)) and satelitte data from table 3 [preprint] [DOI:10.5194/essd-2024-234](https://doi.org/10.5194/essd-2024-234) must be downloaded.
+To do the co-location reference data from the CCI SIT RRDP ([DOI:10.11583/DTU.23735679](https://doi.org/10.11583/DTU.24787341)) and satelitte data from table 3 [preprint] [DOI:10.5194/essd-18-2469-2026](https://doi.org/10.5194/essd-18-2469-2026) must be downloaded.
 
 
 ## Changing Spatial and Temporal Resolution
